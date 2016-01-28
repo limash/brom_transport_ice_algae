@@ -4,7 +4,7 @@
     !Original author(s): Shamil Yakubov
     !to do: does k_ice depend on chl?
     !       z_conv equals 1 for now
-    !       for nutreints in water the response shuold be implemented
+    !       for nutreints in water the response should be implemented
     
     use fabm_types, only: rk
     
@@ -18,7 +18,7 @@
     real(rk):: ice_growth
     real(rk):: z_s = 0.03 !bottom layer depth
     real(rk):: p_b = 1.2 !maximum rate of photosynthesis (mg C mg Chl-1 h-1)
-    real(rk):: chl_to_carbon = 30 !conversion factor (mg C mg Chl-1)
+    real(rk):: chl_to_carbon = 30. !conversion factor (mg C mg Chl-1)
     real(rk):: carbon_to_oxy = 0.375 !conversion factor (mg C mg o2-1)
     public  :: ice_layer
     
@@ -132,6 +132,10 @@
     constructor_ice_layer%a_nitrogen = 0.
     constructor_ice_layer%a_phosphorus = 0.
     
+    constructor_ice_layer%d_a_carbon = 0.
+    constructor_ice_layer%d_a_nitrogen = 0.
+    constructor_ice_layer%d_a_phosphorus = 0.
+    
     constructor_ice_layer%nh4 = 0.
     constructor_ice_layer%no2 = 0.
     constructor_ice_layer%no3 = 0.
@@ -175,9 +179,9 @@
     
     !here we will calculate the length of the day 
     !depends on latitude and julianday
-    foo = cos((julian_day + 10) * 2 * 3.14159 / 365.25)
-    day_length = real(12 - 24/3.14159 * asin(tan(lat * 3.14159 / 180) *&
-                 tan(23.5 * 3.14159 / 180) * foo))
+    foo = cos((julian_day + 10.) * 2. * 3.14159 / 365.25)
+    day_length = real(12. - 24./3.14159 * asin(tan(lat * 3.14159 / 180.) *&
+                 tan(23.5 * 3.14159 / 180.) * foo))
     !to fix complex values
     if (isnan(day_length) .and. foo > 0) day_length = 0.
     if (isnan(day_length) .and. foo < 0) day_length = 24.
@@ -213,11 +217,11 @@
     
     !processes rates are per hour inside procedure
     call self%do_a_carbon()
-    self%a_carbon = self%a_carbon + self%d_a_carbon * dt * 24
+    self%a_carbon = self%a_carbon + self%d_a_carbon * dt * 24.
     call self%do_a_nitrogen()
-    self%a_carbon = self%a_nitrogen + self%d_a_nitrogen * dt * 24
+    self%a_nitrogen = self%a_nitrogen + self%d_a_nitrogen * dt * 24.
     call self%do_a_phosphorus()
-    self%a_carbon = self%a_phosphorus + self%d_a_phosphorus * dt * 24
+    self%a_phosphorus = self%a_phosphorus + self%d_a_phosphorus * dt * 24.
         
     end subroutine do_ice
     
@@ -342,7 +346,7 @@
     real(rk):: c ![g*cm-1*ppt-1]
     
     c = 8e-4
-    self%brine_density = (1 + c*self%brine_salinity)*1e6
+    self%brine_density = (1. + c*self%brine_salinity)*1e6
     
     end subroutine do_brine_density
     
@@ -388,20 +392,20 @@
                         self%v_ammonium(number_of_layers), self%release_n(number_of_layers), &
                         self%nh4)
     call self%do_bottom(no2, self(number_of_layers)%d_no2, self(number_of_layers)%a_nitrogen, &
-                        (self%v_nina(number_of_layers) / 2), self%release_n(number_of_layers), &
+                        (self%v_nina(number_of_layers) / 2.), self%release_n(number_of_layers), &
                         self%no2)
     call self%do_bottom(no3, self(number_of_layers)%d_no3, self(number_of_layers)%a_nitrogen, &
-                        (self%v_nina(number_of_layers) / 2), self%release_n(number_of_layers), &
+                        (self%v_nina(number_of_layers) / 2.), self%release_n(number_of_layers), &
                         self%no3)
     do i = number_of_layers - 1, 2, -1
         call self%do_congelation(self(i)%d_nh4, self(i)%a_nitrogen, &
                         self%v_ammonium(i), self%release_n(i), i, &
                         self%nh4)
         call self%do_congelation(self(i)%d_no2, self(i)%a_nitrogen, &
-                        (self%v_nina(number_of_layers) / 2), self%release_n(i), i, &
+                        (self%v_nina(number_of_layers) / 2.), self%release_n(i), i, &
                         self%no2)
         call self%do_congelation(self(i)%d_no3, self(i)%a_nitrogen, &
-                        (self%v_nina(number_of_layers) / 2), self%release_n(i), i, &
+                        (self%v_nina(number_of_layers) / 2.), self%release_n(i), i, &
                         self%no3)
     end do
     
@@ -418,11 +422,11 @@
     
     !calculates d_nh4 for bottom layer
     call self%do_bottom(po4, self(number_of_layers)%d_po4, self(number_of_layers)%a_phosphorus, &
-                        (self%uptake_p(number_of_layers) * 24), self%release_p(number_of_layers), &
+                        (self%uptake_p(number_of_layers) * 24.), self%release_p(number_of_layers), &
                         self%po4)
     do i = number_of_layers - 1, 2, -1
         call self%do_congelation(self(i)%d_po4, self(i)%a_phosphorus, &
-                        (self%uptake_p(i) * 24), self%release_p(i), i, &
+                        (self%uptake_p(i) * 24.), self%release_p(i), i, &
                         self%po4)
     end do
     
@@ -486,7 +490,7 @@
         self%second_derivative(nut_brine(layer - 1), nut_brine(layer), nut_brine(layer + 1), self(layer - 1)%dz, self(layer)%dz)
     end if
     
-    brine_flux_z = 86400 * brine_flux_z !convert per second to per day
+    brine_flux_z = 86400. * brine_flux_z !convert per second to per day
     
     end function brine_flux_z
     
@@ -503,7 +507,7 @@
     brine_flux_s = self(layer)%brine_relative_volume *&
         self%brine_release() * z_s *&
         self%second_derivative(nut_brine(layer - 1), nut_brine(layer), nut_in_water, self(layer - 1)%dz, self(layer)%dz)
-    brine_flux_s = 86400 * brine_flux_s !convert per second to per day
+    brine_flux_s = 86400. * brine_flux_s !convert per second to per day
     
     end function brine_flux_s
     
@@ -521,7 +525,7 @@
     diffusion_flux_s = self(layer)%brine_relative_volume *&
         k_wi *&
         self%second_derivative(nut_brine(layer - 1), nut_brine(layer), nut_in_water, self(layer - 1)%dz, self(layer)%dz)
-    diffusion_flux_s = 86400 * diffusion_flux_s !convert per second to per day
+    diffusion_flux_s = 86400. * diffusion_flux_s !convert per second to per day
     
     end function diffusion_flux_s
     
@@ -536,7 +540,7 @@
     real(rk), intent(in)            :: nut_in_water !for bottom layer
     
     congelation_flux_s = (ice_growth * (nut_in_water - nut_brine(layer)) * nut_in_water) /&
-                         ((z_s + ice_growth) * self(layer)%brine_relative_volume * 86400)
+                         ((z_s + ice_growth) * self(layer)%brine_relative_volume * 86400.)
     
     end function congelation_flux_s
     
@@ -549,8 +553,8 @@
     real(rk)                        :: second_derivative
     real(rk)                        :: h
     
-    h = (pre_h + next_h) / 2
-    second_derivative = (pre_layer - 2 * layer + next_layer) / h**2
+    h = (pre_h + next_h) / 2.
+    second_derivative = (pre_layer - 2. * layer + next_layer) / h**2
     
     end function second_derivative
     
@@ -561,7 +565,7 @@
     class(ice_layer), dimension(:)  :: self
     real(rk)                        :: brine_release
     
-    brine_release = (9.667e-9 + 4.49e-6 * ice_growth - 1.39e-7 * ice_growth**2) / 100
+    brine_release = (9.667e-9 + 4.49e-6 * ice_growth - 1.39e-7 * ice_growth**2) / 100.
     
     end function brine_release
     
@@ -574,7 +578,7 @@
     integer:: i
     real(rk):: recruit = 0.01 !recruitment of algae on bottom
 
-    do i = 1, number_of_layers
+    do i = number_of_layers, 1, -1
         if (self(i)%is_bottom == .true.) then
             self(i)%d_a_carbon = self(i)%a_carbon * (self%gpp(i)- self%resp(i) -&
                       self%exud(i) - self%mort(i) - self%melt()) + recruit
@@ -609,7 +613,7 @@
     !initial slope or photosynthetic efficiency
     real(rk), parameter:: alpha = 0.227 ![mg C mg Chl-1 microE m2s]
     !degree of photoinhibition
-    real(rk), parameter:: betta = 0 ![mg C mg Chl-1 h-1(microM photons m-2 s-1)-1]
+    real(rk), parameter:: betta = 0. ![mg C mg Chl-1 h-1(microM photons m-2 s-1)-1]
     
     f_par = (1 - exp(-1 * alpha * self(layer)%par_z / p_b)) &
                * exp(-1 * betta * self(layer)%par_z / p_b)
@@ -664,7 +668,7 @@
     p_cell = self%p_cell(layer)
     
     if (self(layer)%a_carbon == 0.) then
-        f_nut = 0
+        f_nut = 0.
     else
         f_nut = min(n_cell / (kn_cell + n_cell), p_cell / (kp_cell + p_cell))
     end if
@@ -707,19 +711,19 @@
     real(rk), parameter:: r_dark = 0.3
     !ratio between respiration in the light and
     !respiration in the dark (dimensionless)
-    real(rk), parameter:: dl_ratio = 2
+    real(rk), parameter:: dl_ratio = 2.
     real(rk):: resp_day, resp_night
     
     resp_day = (r0 + r_dark * dl_ratio * self(layer)%last_gpp) *&
         (carbon_to_oxy / chl_to_carbon) *&
-        16 * day_length * self(layer)%last_f_t
+        16. * day_length * self(layer)%last_f_t
     
     resp_night = (r0 + r_dark * self(layer)%last_gpp) *&
         (carbon_to_oxy / chl_to_carbon) *&
-        16 * (24 - day_length) * self(layer)%last_f_t
+        16. * (24. - day_length) * self(layer)%last_f_t
     
     !to make resp coeffic in per hour units
-    resp = (resp_day + resp_night) / 24
+    resp = (resp_day + resp_night) / 24.
     
     end function resp
     
@@ -770,7 +774,7 @@
     integer:: i
     real(rk):: recruit = 0.01 !recruitment of algae on bottom
 
-    do i = 1, number_of_layers
+    do i = number_of_layers, 1, -1
         if (self(i)%is_bottom == .true.) then
             self(i)%d_a_nitrogen = self(i)%a_nitrogen * (self%uptake_n(i) - self%release_n(i) -&
                       self(i)%last_mort - self%melt()) + recruit
@@ -789,7 +793,7 @@
     integer :: layer
     real(rk):: uptake_n
     
-    uptake_n = (self%v_ammonium(layer) + self%v_nina(layer)) / 24 !to per hour transform
+    uptake_n = (self%v_ammonium(layer) + self%v_nina(layer)) / 24. !to per hour transform
     
     end function uptake_n
     
@@ -852,8 +856,10 @@
     real(rk):: release_n
     real(rk):: n_max = 0.53! [mg N * mg C-1] maximum nitrogen cell quota
     
-    if (self%n_cell(layer) > n_max) then
+    if (self%n_cell(layer) > n_max .and. self(layer)%a_nitrogen > 0.) then
         release_n = (self(layer)%a_nitrogen - n_max * self(layer)%a_carbon) / self(layer)%a_nitrogen
+    else
+        release_n = 0.
     end if
     
     end function release_n
@@ -867,7 +873,7 @@
     integer:: i
     real(rk):: recruit = 0.01 !recruitment of algae on bottom
 
-    do i = 1, number_of_layers
+    do i = number_of_layers, 1, -1
         if (self(i)%is_bottom == .true.) then
             self(i)%d_a_phosphorus = self(i)%a_phosphorus * (self%uptake_p(i) - self%release_p(i) -&
                       self(i)%last_mort - self%melt()) + recruit
@@ -887,9 +893,9 @@
     real(rk):: uptake_p
     real(rk):: phos_min = 0.002! [mg P mg C-1] minimum phosphorus cell quota
     real(rk):: phos_max = 0.08! [mg P mg C-1] maximum phosphorus cell quota
-    real(rk):: min_n_p = 4! min N/P in algae
+    real(rk):: min_n_p = 4.! min N/P in algae
     real(rk):: v_max_p = 1.08! [d-1] maximal uptake rate of po4
-    real(rk):: k_p = 2! [microM P] half saturation constant for po4 uptake
+    real(rk):: k_p = 2.! [microM P] half saturation constant for po4 uptake
     real(rk):: foo
     
     foo = self(layer)%a_nitrogen / self(layer)%a_phosphorus
@@ -897,8 +903,10 @@
         .and. foo > min_n_p) then
         uptake_p = (v_max_p * self(layer)%po4) / (k_p + self(layer)%po4) *&
             (1 - (self%p_cell(layer) / phos_max))
+    else
+        uptake_p = 0.
     end if
-    uptake_p = uptake_p / 24 !to per hour transform
+    uptake_p = uptake_p / 24. !to per hour transform
         
     end function uptake_p
     
@@ -911,8 +919,10 @@
     real(rk):: release_p
     real(rk):: phos_max = 0.08! [mg P mg C-1] maximum phosphorus cell quota
     
-    if (self%p_cell(layer) > phos_max) then
+    if (self%p_cell(layer) > phos_max .and. self(layer)%a_phosphorus > 0.) then
         release_p = (self(layer)%a_phosphorus - phos_max * self(layer)%a_carbon) / self(layer)%a_phosphorus
+    else
+        release_p = 0.
     end if
     
     end function release_p
