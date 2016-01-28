@@ -109,7 +109,6 @@
     call fabm_link_bulk_data(model, standard_variables%pressure, pressure)                                      !dbar
     call fabm_link_horizontal_data(model, standard_variables%wind_speed, wind_speed)                            !m s-1
     call fabm_link_horizontal_data(model, standard_variables%mole_fraction_of_carbon_dioxide_in_air, pco2_atm)  !ppm
-    !call fabm_link_horizontal_data(model, standard_variables%sea_ice_thickness, hice(1))                        !m
     call fabm_check_ready(model)
     
     !default environment in absence of actual data (could be retrievd from GOTM output)
@@ -228,7 +227,6 @@
         !resend data that depend on julianday to FABM
         call fabm_link_bulk_data(model, standard_variables%temperature, tem2(:, julianday))
         call fabm_link_bulk_data(model, standard_variables%practical_salinity, sal2(:, julianday))
-        !call fabm_link_horizontal_data(model, standard_variables%sea_ice_thickness, hice(julianday))
         
         !boudary conditions
         if (i_SO4 /= -1) then
@@ -272,7 +270,7 @@
             !turbidity caused by particles in the water above
             !irradiance changing with depth
             if (k < boundary_bbl_sediments) then
-                iz(k) = io * exp(-k_erlov * z(k))! * max(0.,(1.-hice(julianday))) ! is restricted by ice with thickness 1 m
+                iz(k) = io * exp(-k_erlov * z(k))
             else
                 iz(k) = 0.
             end if
@@ -290,7 +288,7 @@
             cc = max(0.00000000001, (cc + dcc))
             
             !ice algae
-            call ice_l%do_ice(cc(1, i_NH4), cc(1, i_NO2), cc(1, i_NO3), cc(1, i_PO4), dt)
+            call ice_l%do_ice(cc(1, i_NH4), cc(1, i_NO2), cc(1, i_NO3), cc(1, i_PO4), dt, hice(julianday))
             
             do  ip = 1, freq_az
                 !compute surface fluxes in FABM
@@ -321,6 +319,7 @@
             
         end do
         
+        ice_alga = ice_l%get_algae()
         !-------NETCDF-----------------------------------------------------------------------------------------    
         write (*,'(a, i4, a, i4)') " model year:", model_year, "; julianday:", julianday
         call save_netcdf(lev_max, julianday, cc, tem2, sal2, Kz2, model, -z, hice, iz, ice_alga, ice_dom)

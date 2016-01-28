@@ -70,6 +70,7 @@
         private
         procedure, public:: do_slow_ice
         procedure, public:: do_ice
+        procedure, public:: get_algae
         procedure:: do_grid
         procedure:: do_par
         procedure:: do_bulk_temperature
@@ -162,6 +163,34 @@
     real(rk), intent(inout):: io
     real(rk)               :: foo
     
+    if (ice_thickness < 0.04) then
+        self%z = 0.
+        self%dz = 0.
+        self%par_z = 0.
+        self%bulk_temperature = 0.
+        self%bulk_salinity = 0.
+        self%bulk_density = 0.
+        self%brine_temperature = 0.
+        self%brine_salinity = 0.
+        self%brine_density = 0.
+        self%a_carbon = 0.
+        self%a_nitrogen = 0.
+        self%a_phosphorus = 0.
+        self%d_a_carbon = 0.
+        self%d_a_nitrogen = 0.
+        self%d_a_phosphorus = 0.
+        self%nh4 = 0.
+        self%d_nh4 = 0.
+        self%no2 = 0.
+        self%d_no2 = 0.
+        self%no3 = 0.
+        self%d_no3 = 0.
+        self%po4 = 0.
+        self%d_po4 = 0.
+        self%brine_relative_volume = 0.
+        return
+    end if
+    
     call self%do_grid(ice_thickness)
     
     call self%do_par(io, snow_thick)
@@ -191,7 +220,7 @@
         
     end subroutine do_slow_ice
     
-    subroutine do_ice(self, nh4, no2, no3, po4, dt)
+    subroutine do_ice(self, nh4, no2, no3, po4, dt, ice_thickness)
     
     implicit none
     class(ice_layer), dimension(:):: self
@@ -200,6 +229,11 @@
     real(rk), intent(in):: no3 !from upper water layer
     real(rk), intent(in):: po4 !from upper water layer
     real(rk), intent(in):: dt
+    real(rk), intent(in):: ice_thickness
+    
+    if (ice_thickness < 0.04) then
+        return
+    end if
     
     !calculate fluxes of nutrients in ice
     call self%do_nitrogen(nh4, no2, no3)
@@ -207,9 +241,9 @@
     self%no2 = self%no2 + self%d_no2 * dt
     self%no3 = self%no3 + self%d_no3 * dt
     self(1)%nh4 = self(2)%nh4
-    self(1)%no2 = self(2)%nh4
-    self(1)%no3 = self(2)%nh4
-    self(1)%po4 = self(2)%nh4
+    self(1)%no2 = self(2)%no2
+    self(1)%no3 = self(2)%no3
+    self(1)%po4 = self(2)%po4
     
     call self%do_phosphorus(po4)
     self%po4 = self%po4 + self%d_po4 * dt
@@ -224,6 +258,20 @@
     self%a_phosphorus = self%a_phosphorus + self%d_a_phosphorus * dt * 24.
         
     end subroutine do_ice
+    
+    function get_algae(self)
+    
+    implicit none
+    class(ice_layer), dimension(:):: self
+    real(rk):: get_algae
+    integer:: i
+    
+    get_algae = 0.
+    do i = 1, number_of_layers
+        get_algae = get_algae + self(i)%a_carbon
+    end do
+        
+    end function get_algae
     
     subroutine do_grid(self, hice)
     !it makes grid, bottom layer is on lower edge of ice and equals 3 cm
