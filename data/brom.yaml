@@ -1,0 +1,33 @@
+instances:
+  brom:
+    initialization:
+      is_input_data: 1                          # is it needed to use input.dat as initial conditions, 0 - no, not 0 - yes
+#-----------------------------------------------
+      width_bbl: 0.5
+      resolution_bbl: 0.025
+      width_bioturbation: 0.02
+      resolution_bioturbation: 0.002
+      width_sediments: 0.02
+      resolution_sediments: 0.002
+#-----------------------------------------------
+      density: 1000.
+      wind_speed: 5.
+      pco2_atm: 370.
+#      Io: 80.
+#-----------------------------------------------
+      bound(i_SO4): 25000.
+      bound_up(i_Mn4): 5.E-5
+      bound_up(i_Fe3): 1.E-4
+      bound_up(i_ALK): 2250.
+      bound_low(i_CaCO3): 6000
+#-----------------------------------------------
+      lat_light: 70.
+      kc: 0.03                                   # attenuation constant for the self shading effect
+      k_erlov: 0.05                              # extinction coefficient
+      dt: 0.0025                                 # time step in [day/1]
+      freq_az: 4                                 # vert.turb. / bhc frequency
+      freq_sed: 1                                # sinking / bhc frequency
+      last_day: 365
+      year: 2008                                 # year(between 1981 and 2012)
+#-----------------------------------------------
+      number_of_layers: 5                        # number of layers in ice
