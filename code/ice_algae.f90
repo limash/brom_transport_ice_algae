@@ -43,12 +43,10 @@
         real(rk):: a_carbon
         real(rk):: a_nitrogen
         real(rk):: a_phosphorus
-        
         !increments of different algae nutrient concentrations
         real(rk):: d_a_carbon
         real(rk):: d_a_nitrogen
         real(rk):: d_a_phosphorus
-        
         !brine concentrations of nutrients
         real(rk):: nh4
         real(rk):: d_nh4
@@ -58,7 +56,6 @@
         real(rk):: d_no3
         real(rk):: po4
         real(rk):: d_po4
-        
         !volume of brine channels
         real(rk):: brine_relative_volume
         !some variables that will be used iteratively 
@@ -120,7 +117,6 @@
     function constructor_ice_layer(number_of_layers_in)
     
     implicit none
-    
     class(ice_layer), dimension(:), pointer:: constructor_ice_layer
     integer, intent(in):: number_of_layers_in
     

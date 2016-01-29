@@ -1,10 +1,11 @@
     module brom_transport
-    
     !REVISION HISTORY:
-    !Original author(s): Evgeniy Yakushev, Shamil Yakubov
-    !Shamil_12_2015 - some for ice dependencies were added    
+    !Original author(s): Shamil Yakubov, Evgeniy Yakushev
+    !Shamil_11_2015 - yaml configurator was added
+    !Shamil_12_2015 - ice dependencies were added
+    !Shamil_01_2016 - ice_algae object was added
     !to do:
-    ! - PO4, NO3, Si surface concentrations should be changed for Kara sea area
+    ! - 
     
     use fabm
     use fabm_config
@@ -14,13 +15,12 @@
     use ice_algae_lib
     
     implicit none
-    
     private
     public init_brom_transport, do_brom_transport, clear_brom_transport
-    
     !FABM model with all data and procedures related to biogeochemistry
     type (type_model)                                               :: model
-    integer                                                         :: lev_max, par_max, boundary_bbl_sediments, year, number_of_layers
+    integer                                                         :: lev_max, par_max, year, number_of_layers
+    integer                                                         :: boundary_bbl_sediments, boundary_water_bbl
     !grids for depth(z), gradients of depth(dz), bioturbations coefficients, hice -  "time-averaged average ice thickness in cell"
     real(rk), pointer, dimension(:)                                 :: z, dz, kz_bio, hice
     real(rk), pointer, dimension(:)                                 :: ice_area, heat_flux, snow_thick, t_ice
@@ -34,39 +34,45 @@
     real(rk), allocatable, dimension(:)                             :: kz_tot
     real(rk)                                                        :: dt       !time step in [day/iteration]
     real(rk)                                                        :: io, wind_speed, pco2_atm, &
-                                                                    width_bbl, resolution_bbl, width_bioturbation, &
-                                                                    resolution_bioturbation, width_sediments, resolution_sediments
-    
+                                                                       width_bbl, resolution_bbl, width_bioturbation, &
+                                                                       resolution_bioturbation, width_sediments, resolution_sediments
     real(rk)                                                        :: ice_alga, ice_dom
     type(ice_layer), pointer, dimension(:)  :: ice_l=>null()
+    type(netcdf_o), pointer                 :: netcdf_pelagic=>null()
+    type(netcdf_o), pointer                 :: netcdf_bottom=>null()
 
     contains
-   
+
     subroutine init_brom_transport()
-    
     !REVISION HISTORY: Shamil Yakubov 11_2015 
     !- get_brom_par from brom.yaml was added
     !- io with fabm linking was deleted
     
     implicit none
-    
     integer                 :: i
     
     !reading brom.yaml: module io_ascii
     call init_common()
     !getting variable values from brom.yaml: module io_ascii
-    width_bbl = get_brom_par("width_bbl")
-    resolution_bbl = get_brom_par("resolution_bbl")
-    width_bioturbation = get_brom_par("width_bioturbation")
+    width_bbl               = get_brom_par("width_bbl")
+    resolution_bbl          = get_brom_par("resolution_bbl")
+    width_bioturbation      = get_brom_par("width_bioturbation")
     resolution_bioturbation = get_brom_par("resolution_bioturbation")
-    width_sediments = get_brom_par("width_sediments")
-    resolution_sediments = get_brom_par("resolution_sediments")
-    year = get_brom_par("year")
-    dt = get_brom_par("dt")
+    width_sediments         = get_brom_par("width_sediments")
+    resolution_sediments    = get_brom_par("resolution_sediments")
+    year                    = get_brom_par("year")
+    dt                      = get_brom_par("dt")
+    !default environment in absence of actual data (could be retrievd from GOTM output)
+    density                 = get_brom_par("density")   !kg m-3
+    wind_speed              = get_brom_par("wind_speed")!m s-1
+    pressure                = z + 10                    !dbar, roughly equivalent to depth in m+ 1 bar atmospheric pressure
+    pco2_atm                = get_brom_par("pco2_atm")  !ppm
+    !number of layers in ice
+    number_of_layers        = get_brom_par("number_of_layers")
     
     !input_netcdf, kz2 - AKs, hice -  "time-averaged average ice thickness in cell", also generates grid according to input data
     call input_netcdf('KaraSea.nc', z, dz, kz_bio, lev_max, tem2, sal2, kz2, hice, boundary_bbl_sediments, &
-        width_bbl, resolution_bbl, width_bioturbation, resolution_bioturbation, &
+        boundary_water_bbl, width_bbl, resolution_bbl, width_bioturbation, resolution_bioturbation, &
         width_sediments, resolution_sediments, year, ice_area, heat_flux, snow_thick, t_ice)
     kz2(1:35, :) = kz2(1:35, :) * 0.1 !temporarily for debugging
     kz2 = kz2 * dt * 86400 !because kz2 in m*m/sec, but here we need in day * time step
@@ -78,18 +84,18 @@
     ! Specify vertical index of surface and bottom
     call model%set_surface_index(2)
     call model%set_bottom_index(boundary_bbl_sediments)
-
+    !main array and its icrement allocating    
     allocate(cc(lev_max, par_max))
     allocate(dcc(lev_max, par_max))
     allocate(wbio(lev_max, par_max))    !vertical velocity (m/s, negative for sinking)
-    
+    !bounds allocating
     allocate(bound_up(par_max))
     allocate(bound_low(par_max))
     allocate(use_bound_up(par_max))
     allocate(use_bound_low(par_max))
     use_bound_up = .false.
     use_bound_low = .false.
-    
+    !auxiliary variables
     allocate(iz(lev_max))
     allocate(density(lev_max))
     allocate(pressure(lev_max))  
@@ -111,13 +117,6 @@
     call fabm_link_horizontal_data(model, standard_variables%mole_fraction_of_carbon_dioxide_in_air, pco2_atm)  !ppm
     call fabm_check_ready(model)
     
-    !default environment in absence of actual data (could be retrievd from GOTM output)
-    density = get_brom_par("density")    ! kg m-3
-    wind_speed = get_brom_par("wind_speed")     ! m s-1
-    pressure = z + 10   ! dbar, roughly equivalent to depth in m+ 1 bar atmospheric pressure
-    pco2_atm = get_brom_par("pco2_atm")     ! ppm
-    !Io = get_brom_par("Io")            ! W m-2
-    
     allocate(par_name(par_max))
     do i = 1, par_max
         par_name(i) = model%state_variables(i)%name
@@ -130,13 +129,13 @@
         call porting_initial_state_variables_data(lev_max, par_name, cc)
     end if
     
-    !number of layers in ice
-    number_of_layers = get_brom_par("number_of_layers")
     !ice algae initialization
     ice_l  => ice_layer(number_of_layers)
-    
     !initializing output
-    call init_netcdf("output.nc", lev_max, model)
+    netcdf_pelagic => netcdf_o()
+    netcdf_bottom  => netcdf_o()
+    call netcdf_pelagic%init_netcdf("output_p.nc", 1, boundary_water_bbl - 1, model)
+    call netcdf_bottom%init_netcdf("output_b.nc", boundary_water_bbl, lev_max, model)
     
     end subroutine init_brom_transport
     
@@ -267,7 +266,6 @@
         !compute irradiance at depth
         do k = 1, lev_max
             !we check that we are not in the sediments
-            !turbidity caused by particles in the water above
             !irradiance changing with depth
             if (k < boundary_bbl_sediments) then
                 iz(k) = io * exp(-k_erlov * z(k))
@@ -322,9 +320,11 @@
         ice_alga = ice_l%get_algae()
         !-------NETCDF-----------------------------------------------------------------------------------------    
         write (*,'(a, i4, a, i4)') " model year:", model_year, "; julianday:", julianday
-        call save_netcdf(lev_max, julianday, cc, tem2, sal2, Kz2, model, -z, hice, iz, ice_alga, ice_dom)
+        call netcdf_pelagic%save_netcdf(1, boundary_water_bbl - 1,  lev_max, julianday, cc, tem2, sal2, Kz2, model, z, iz)
+        call netcdf_bottom%save_netcdf(boundary_water_bbl, lev_max, lev_max, julianday, cc, tem2, sal2, Kz2, model, z, iz)
         if (i == last_day - 1) then
-            call close_netcdf()
+            call netcdf_pelagic%close_netcdf()
+            call netcdf_bottom%close_netcdf()
             call saving_state_variables_data(model_year, julianday, lev_max, par_max, par_name, z, cc)
         end if
         !---END-of-NETCDF--------------------------------------------------------------------------------------

@@ -12,27 +12,36 @@
     !all is private
     private
     !public functions
-    public input_netcdf, init_netcdf, save_netcdf, close_netcdf
-    !netCDF file id
-    integer                                 :: nc_id
-    integer, allocatable                    :: parameter_id(:)
-    integer, allocatable                    :: parameter_id_diag(:)
-    !parameter_ids
-    integer                                 :: z_id, time_id, ice_id, iz_id
-    integer                                 :: pH_id, T_id, S_id, Kz2_id
-    integer                                 :: pCO2_id, Om_Ca_id, Om_Ar_id
-    integer                                 :: ice_algae_id, ice_dom_id
+    public input_netcdf, netcdf_o
     
-    logical                                 :: first
+    type netcdf_o
+        private
+        !netCDF file id
+        integer                                 :: nc_id
+        integer, allocatable                    :: parameter_id(:)
+        integer, allocatable                    :: parameter_id_diag(:)
+        !parameter_ids
+        integer                                 :: z_id, time_id, iz_id
+        integer                                 :: t_id, s_id, kz2_id
+        logical                                 :: first
+    contains
+        private
+        procedure, public:: init_netcdf
+        procedure, public:: save_netcdf
+        procedure, public:: close_netcdf
+    end type netcdf_o
    
+    interface netcdf_o
+        procedure constructor_netcdf_o
+    end interface
+    
     contains
     
     subroutine input_netcdf(file_name, z, dz, kz_bio, lev_max, t, s, AKs, hice, boundary_bbl_sediments, &
-        width_bbl, resolution_bbl, width_bioturbation, resolution_bioturbation, &
+        boundary_water_bbl, width_bbl, resolution_bbl, width_bioturbation, resolution_bioturbation, &
         width_sediments, resolution_sediments, year, ice_area, heat_flux, snow_thick, t_ice)
     
     implicit none
-         
     real(rk), intent(in) :: width_bbl, resolution_bbl, width_bioturbation, resolution_bioturbation, &
         width_sediments, resolution_sediments
     
@@ -41,7 +50,7 @@
     real(rk), dimension (:, :), pointer, intent(out)        :: t, s, AKs
     real(rk), dimension (:), pointer, intent(out)           :: z, dz, kz_bio, hice
     real(rk), dimension (:), pointer, intent(out)           :: ice_area, heat_flux, snow_thick, t_ice
-    integer, intent(out)                                    :: lev_max, boundary_bbl_sediments
+    integer, intent(out)                                    :: lev_max, boundary_bbl_sediments, boundary_water_bbl
     integer, intent(in)                                     :: year
     
     integer                                     :: ncid, i, j, range, number_of_days
@@ -69,6 +78,7 @@
     call check_err(nf90_inquire_variable(ncid, t_varid, dimids = dimids))
     call check_err(nf90_inquire_dimension(ncid, dimids(1), len = h_rec))
     call check_err(nf90_inquire_dimension(ncid, dimids(2), len = time_rec))
+    boundary_water_bbl = h_rec + 2
     
     bbl_count = int(width_bbl/resolution_bbl) + h_rec + 1 ! +1 - for surface with depth 0 layer
     bioturbation_count = int(width_bioturbation/resolution_bioturbation) + bbl_count
@@ -203,136 +213,134 @@
     call check_err(nf90_close(ncid))
     
     end subroutine input_netcdf
-        
-    subroutine init_netcdf(fn, nlev, model)
+    
+    function constructor_netcdf_o()
+    
+    implicit none
+    class(netcdf_o), pointer:: constructor_netcdf_o
+    
+    allocate(constructor_netcdf_o)
+    
+    end function constructor_netcdf_o
+    
+    subroutine init_netcdf(self, fn, first_lvl, last_lvl, model)
 
     implicit none
-    
+    class(netcdf_o):: self
     !input:
     character(len = *), intent(in)          :: fn
-    integer, intent(in)                     :: nlev
+    integer, intent(in)                     :: first_lvl, last_lvl
     type (type_model),intent(in)            :: model
     !dimension ids
     integer                                 :: z_dim_id, time_dim_id
-    integer                                 :: ip, iret, ilast
+    integer                                 :: ip, ilast, nlev
     !dimension lengths
     integer, parameter                      :: time_len = NF90_UNLIMITED
-    character(10)                           :: parameter_name
     integer                                 :: dim1d
     integer                                 :: dim_ids(2)
-    
-    first = .true.
+
+    nlev = last_lvl - first_lvl + 1
+    self%first = .true.
     print *, 'NetCDF version: ', trim(nf90_inq_libvers())
-    nc_id = -1
-    call check_err(nf90_create(fn, NF90_CLOBBER, nc_id))
+    self%nc_id = -1
+    call check_err(nf90_create(fn, NF90_CLOBBER, self%nc_id))
     !define the dimensions
-    call check_err(nf90_def_dim(nc_id, "z", nlev, z_dim_id))
-    call check_err(nf90_def_dim(nc_id, "time", time_len, time_dim_id))
+    call check_err(nf90_def_dim(self%nc_id, "z", nlev, z_dim_id))
+    call check_err(nf90_def_dim(self%nc_id, "time", time_len, time_dim_id))
     !define coordinates
     dim1d = z_dim_id
-    call check_err(nf90_def_var(nc_id, "z", NF90_REAL, dim1d, z_id))
+    call check_err(nf90_def_var(self%nc_id, "z", NF90_REAL, dim1d, self%z_id))
     dim1d = time_dim_id
-    call check_err(nf90_def_var(nc_id, "time", NF90_REAL, dim1d, time_id))
-    call check_err(nf90_def_var(nc_id, "ice", NF90_REAL, dim1d, ice_id))
-    call check_err(nf90_def_var(nc_id, "ice algae", NF90_REAL, dim1d, ice_algae_id))
-    call check_err(nf90_def_var(nc_id, "ice DOM", NF90_REAL, dim1d, ice_dom_id))
+    call check_err(nf90_def_var(self%nc_id, "time", NF90_REAL, dim1d, self%time_id))
     !define variables
     dim_ids(1) = z_dim_id
     dim_ids(2) = time_dim_id
-    allocate(parameter_id(size(model%state_variables)))
+    allocate(self%parameter_id(size(model%state_variables)))
     do ip = 1, size(model%state_variables)
         ilast = index(model%state_variables(ip)%path,'/',.true.)
-        call check_err(nf90_def_var(nc_id, model%state_variables(ip)%path(ilast+1:), NF90_REAL, dim_ids, parameter_id(ip)))
-        call check_err(set_attributes(ncid=nc_id, id=parameter_id(ip), units=model%state_variables(ip)%units, &
+        call check_err(nf90_def_var(self%nc_id, model%state_variables(ip)%path(ilast+1:), NF90_REAL, dim_ids, self%parameter_id(ip)))
+        call check_err(set_attributes(ncid=self%nc_id, id=self%parameter_id(ip), units=model%state_variables(ip)%units, &
             long_name=model%state_variables(ip)%long_name,missing_value=model%state_variables(ip)%missing_value))
     end do
-    allocate(parameter_id_diag(size(model%diagnostic_variables)))
+    allocate(self%parameter_id_diag(size(model%diagnostic_variables)))
     do ip = 1, size(model%diagnostic_variables)
         if (model%diagnostic_variables(ip)%save) then
             ilast = index(model%diagnostic_variables(ip)%path,'/',.true.)
-            call check_err(nf90_def_var(nc_id, model%diagnostic_variables(ip)%path(ilast+1:), NF90_REAL, dim_ids, parameter_id_diag(ip)))
-            call check_err(set_attributes(ncid=nc_id, id=parameter_id_diag(ip), units=model%diagnostic_variables(ip)%units, &
+            call check_err(nf90_def_var(self%nc_id, model%diagnostic_variables(ip)%path(ilast+1:), NF90_REAL, dim_ids, self%parameter_id_diag(ip)))
+            call check_err(set_attributes(ncid=self%nc_id, id=self%parameter_id_diag(ip), units=model%diagnostic_variables(ip)%units, &
                 long_name=model%diagnostic_variables(ip)%long_name,missing_value=model%diagnostic_variables(ip)%missing_value))
         end if
     end do
-    call check_err(nf90_def_var(nc_id, "T", NF90_REAL, dim_ids, T_id))
-    call check_err(nf90_def_var(nc_id, "S", NF90_REAL, dim_ids, S_id))
-    call check_err(nf90_def_var(nc_id, "Kz2", NF90_REAL, dim_ids, Kz2_id))
-    call check_err(nf90_def_var(nc_id, "radiative_flux", NF90_REAL, dim_ids, iz_id))
+    call check_err(nf90_def_var(self%nc_id, "T", NF90_REAL, dim_ids, self%t_id))
+    call check_err(nf90_def_var(self%nc_id, "S", NF90_REAL, dim_ids, self%s_id))
+    call check_err(nf90_def_var(self%nc_id, "Kz2", NF90_REAL, dim_ids, self%kz2_id))
+    call check_err(nf90_def_var(self%nc_id, "radiative_flux", NF90_REAL, dim_ids, self%iz_id))
     !end define
-    call check_err(nf90_enddef(nc_id))
+    call check_err(nf90_enddef(self%nc_id))
     
     end subroutine init_netcdf
     
-    subroutine save_netcdf(LevMax, julianday, Cc, tem2, sal2, Kz2, model, z, ice, iz, ice_algae, ice_dom)
+    subroutine save_netcdf(self, first_lvl, last_lvl, LevMax, julianday, Cc, tem2, sal2, Kz2, model, z, iz)
 
     implicit none
-    
-    integer, intent(in)                     :: LevMax, julianday
+    class(netcdf_o):: self
+    integer, intent(in)                     :: first_lvl, last_lvl, julianday, LevMax
     real(rk), dimension(:, :), intent(in)   :: Cc
     real(rk), dimension(:, :), intent(in)   :: tem2, sal2, Kz2
     type (type_model), intent(in)           :: model
-    real(rk), dimension(:), intent(in)      :: z, ice, iz
-    real(rk), intent(in)                    :: ice_algae, ice_dom
+    real(rk), dimension(:), intent(in)      :: z, iz
     
-    integer                                 :: edges(2), start(2), start_time(1), edges_time(1)
-    real                                    :: temp_matrix(LevMax), dum(1), mud(1), foo(1), bar(1) ! nevermind what is it but it works
     integer                                 :: ip, i
+    integer                                 :: edges(2), start(2), start_time(1), edges_time(1)
+    real(rk)                                :: temp_matrix(LevMax)
+    real                                    :: dum(1) !nevermind what is it but it works
         
     !write data
-    edges(1) = LevMax
+    edges(1) = last_lvl - first_lvl + 1
     edges(2) = 1
     start(1) = 1
     start(2) = julianday
     start_time(1) = julianday
     edges_time(1) = 1
 
-    if ( first ) then
-        !do ip = 1, LevMax
-        !    temp_matrix(ip) = ip
-        !end do
-        !temp_matrix = (-1 * temp_matrix)
-        !call check_err(nf90_put_var(nc_id, z_id, temp_matrix, start, edges))
-        call check_err(nf90_put_var(nc_id, z_id,  z(1:LevMax), start, edges))
-        first = .false.
+    if ( self%first ) then
+        call check_err(nf90_put_var(self%nc_id, self%z_id,  z(first_lvl:last_lvl), start, edges))
+        self%first = .false.
     end if
     
     dum(1) = real(julianday)
-    mud(1) = real(ice(julianday))
-    foo(1) = real(ice_algae)
-    bar(1) = real(ice_dom)
-    if (nc_id .ne. -1) then
-        call check_err(nf90_put_var(nc_id, time_id, dum, start_time, edges_time))
-        call check_err(nf90_put_var(nc_id, ice_id,  mud, start_time, edges_time))
-        call check_err(nf90_put_var(nc_id, ice_algae_id, foo,  start_time, edges_time))
-        call check_err(nf90_put_var(nc_id, ice_dom_id,   bar,  start_time, edges_time))
+    if (self%nc_id .ne. -1) then
+        call check_err(nf90_put_var(self%nc_id, self%time_id, dum, start_time, edges_time))
         
         do ip = 1, size(model%state_variables)
-            call check_err(nf90_put_var(nc_id, parameter_id(ip), Cc(1:LevMax, ip), start, edges))
+            call check_err(nf90_put_var(self%nc_id, self%parameter_id(ip), Cc(first_lvl:last_lvl, ip), start, edges))
         end do
         do ip = 1, size(model%diagnostic_variables)
             if (model%diagnostic_variables(ip)%save) then
                 temp_matrix = fabm_get_bulk_diagnostic_data(model,ip)
-                call check_err(nf90_put_var(nc_id, parameter_id_diag(ip), temp_matrix(1:LevMax), start, edges))
+                call check_err(nf90_put_var(self%nc_id, self%parameter_id_diag(ip), temp_matrix(first_lvl:last_lvl), start, edges))
             end if
         end do
-        call check_err(nf90_put_var(nc_id, T_id,   tem2(1:LevMax, julianday), start, edges))
-        call check_err(nf90_put_var(nc_id, S_id,   sal2(1:LevMax, julianday), start, edges))
-        call check_err(nf90_put_var(nc_id, Kz2_id, Kz2(1:LevMax, julianday),  start, edges))
-        call check_err(nf90_put_var(nc_id, iz_id,  iz(:),  start, edges))
-        call check_err(nf90_sync(nc_id))        
+        call check_err(nf90_put_var(self%nc_id, self%t_id,   tem2(first_lvl:last_lvl, julianday), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%s_id,   sal2(first_lvl:last_lvl, julianday), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%kz2_id, Kz2(first_lvl:last_lvl, julianday),  start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%iz_id,  iz(first_lvl:last_lvl),  start, edges))
+        call check_err(nf90_sync(self%nc_id))        
     end if
-        
+    
     end subroutine save_netcdf
     
-    subroutine close_netcdf()
+    subroutine close_netcdf(self)
         
-    if (nc_id .ne. -1) then
-        call check_err(nf90_close(nc_id))
-        deallocate(parameter_id)
+    implicit none
+    class(netcdf_o):: self
+    if (self%nc_id .ne. -1) then
+        call check_err(nf90_close(self%nc_id))
+        deallocate(self%parameter_id)
+        deallocate(self%parameter_id_diag)
         write (*,'(a)') "finished"
     end if
-    nc_id = -1
+    self%nc_id = -1
         
     end subroutine close_netcdf
     
