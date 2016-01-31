@@ -159,7 +159,7 @@
     real(rk), intent(inout):: io
     real(rk)               :: foo
     
-    if (ice_thickness < 0.04) then
+    if (ice_thickness < 0.2) then
         self%z = 0.
         self%dz = 0.
         self%par_z = 0.
@@ -227,7 +227,7 @@
     real(rk), intent(in):: dt
     real(rk), intent(in):: ice_thickness
     
-    if (ice_thickness < 0.04) then
+    if (ice_thickness < 0.2) then
         return
     end if
     

@@ -361,6 +361,8 @@
     deallocate(dz)
     deallocate(kz_bio)
     
+    write (*,'(a)') "finished"
+    
     end subroutine clear_brom_transport
     
     end module brom_transport
