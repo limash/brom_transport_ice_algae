@@ -29,7 +29,7 @@
         !depth of layers(z) and dz
         real(rk):: z
         real(rk):: dz
-        !par_z
+        !photosynthetic active radiation
         real(rk):: par_z
         !ice bulk variables
         real(rk):: bulk_temperature
@@ -255,19 +255,38 @@
         
     end subroutine do_ice
     
-    function get_algae(self)
+    subroutine get_algae(self, z, par_z, bulk_temperature, bulk_salinity, &
+        bulk_density, brine_temperature, brine_salinity, brine_density, &
+        a_carbon, a_nitrogen, a_phosphorus, nh4, no2, no3, po4, brine_relative_volume)
     
     implicit none
     class(ice_layer), dimension(:):: self
-    real(rk):: get_algae
-    integer:: i
+    real(rk), intent(out), dimension(number_of_layers):: z
+    real(rk), intent(out), dimension(number_of_layers):: par_z
+    real(rk), intent(out), dimension(number_of_layers):: bulk_temperature, bulk_salinity, bulk_density
+    real(rk), intent(out), dimension(number_of_layers):: brine_temperature, brine_salinity, brine_density
+    real(rk), intent(out), dimension(number_of_layers):: a_carbon, a_nitrogen, a_phosphorus
+    real(rk), intent(out), dimension(number_of_layers):: nh4, no2, no3, po4
+    real(rk), intent(out), dimension(number_of_layers):: brine_relative_volume
     
-    get_algae = 0.
-    do i = 1, number_of_layers
-        get_algae = get_algae + self(i)%a_carbon
-    end do
-        
-    end function get_algae
+    z = self%z
+    par_z = self%par_z
+    bulk_temperature = self%bulk_temperature
+    bulk_salinity = self%bulk_salinity
+    bulk_density = self%bulk_density
+    brine_temperature = self%brine_temperature
+    brine_salinity = self%brine_salinity
+    brine_density = self%brine_density
+    a_carbon = self%a_carbon
+    a_nitrogen = self%a_nitrogen
+    a_phosphorus = self%a_phosphorus
+    nh4 = self%nh4
+    no2 = self%no2
+    no3 = self%no3
+    po4 = self%po4
+    brine_relative_volume = self%brine_relative_volume
+    
+    end subroutine get_algae
     
     subroutine do_grid(self, hice)
     !it makes grid, bottom layer is on lower edge of ice and equals 3 cm
@@ -330,8 +349,12 @@
     implicit none
     class(ice_layer), dimension(:):: self
     real(rk), intent(in):: air_temp, water_temp, ice_thickness
+    integer:: i
     
     self%bulk_temperature = air_temp + ((water_temp - air_temp) * self%z) / ice_thickness
+    do i = 1, number_of_layers
+        if (self(i)%bulk_temperature > -0.2) self(i)%bulk_temperature = -0.2
+    end do
     
     end subroutine do_bulk_temperature
     
@@ -343,9 +366,10 @@
     real(rk), intent(in):: ice_thickness
     real(rk), intent(in):: water_sal
     integer:: i
-    real(rk):: foo = 0.
+    real(rk):: foo
     real(rk):: z_p
     
+    foo = 0.
     do i = 1, number_of_layers
         foo = foo + self(i)%dz
         z_p = foo / ice_thickness
@@ -400,11 +424,18 @@
     implicit none
     class(ice_layer), dimension(:):: self
     real(rk):: dens_pure !density of pure ice
+    integer:: i
+    real(rk):: foo
     
     dens_pure = 912000. ![g*m-3]
-    self%bulk_density = dens_pure * self%brine_density * self%brine_salinity /&
-        (self%brine_density * self%brine_salinity - self%bulk_salinity *&
-         (self%brine_density - dens_pure))
+    
+    do i = 1, number_of_layers
+        foo = self(i)%brine_salinity
+        if (foo < 2.) foo = 2.! function has spikes below x=1
+        self(i)%bulk_density = dens_pure * self(i)%brine_density * foo /&
+        (self(i)%brine_density * foo - self(i)%bulk_salinity *&
+        (self(i)%brine_density - dens_pure))
+    end do
     
     end subroutine do_bulk_density
     
@@ -413,9 +444,15 @@
     
     implicit none
     class(ice_layer), dimension(:):: self
+    integer:: i
+    real(rk):: foo
     
-    self%brine_relative_volume = (self%bulk_density * self%bulk_salinity) /&
-                                 (self%brine_density  * self%brine_salinity)
+    do i = 1, number_of_layers - 1
+        foo = self(i)%brine_salinity
+        if (foo < 10.) foo = 10.!to fix above 1 values
+        self(i)%brine_relative_volume = (self(i)%bulk_density * self(i)%bulk_salinity) /&
+                                     (self(i)%brine_density  * foo)
+    end do
     self(number_of_layers)%brine_relative_volume = 0.5
     
     end subroutine do_brine_relative_volume

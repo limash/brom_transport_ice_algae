@@ -12,17 +12,18 @@
     !all is private
     private
     !public functions
-    public input_netcdf, netcdf_o
+    public input_netcdf, netcdf_o, netcdf_algae_o
     
     type netcdf_o
         private
         !netCDF file id
         integer                                 :: nc_id
+        !parameter_ids
         integer, allocatable                    :: parameter_id(:)
         integer, allocatable                    :: parameter_id_diag(:)
-        !parameter_ids
         integer                                 :: z_id, time_id, iz_id
         integer                                 :: t_id, s_id, kz2_id
+        !auxiliary
         logical                                 :: first
     contains
         private
@@ -31,8 +32,34 @@
         procedure, public:: close_netcdf
     end type netcdf_o
    
+    type netcdf_algae_o
+        private
+        !netCDF file id
+        integer                                 :: nc_id
+        !parameter_ids
+        integer                                 :: time_id
+        integer                                 :: z_id
+        integer                                 :: par_z_id
+        integer                                 :: bulk_temperature_id, bulk_salinity_id, bulk_density_id
+        integer                                 :: brine_temperature_id, brine_salinity_id, brine_density_id
+        integer                                 :: a_carbon_id, a_nitrogen_id, a_phosphorus_id
+        integer                                 :: nh4_id, no2_id, no3_id, po4_id
+        integer                                 :: brine_relative_volume_id
+        !auxiliary
+        logical                                 :: first
+    contains
+        private
+        procedure, public:: init_netcdf_algae
+        procedure, public:: save_netcdf_algae
+        procedure, public:: close_netcdf_algae
+    end type netcdf_algae_o
+    
     interface netcdf_o
         procedure constructor_netcdf_o
+    end interface
+    
+    interface netcdf_algae_o
+        procedure constructor_netcdf_algae_o
     end interface
     
     contains
@@ -223,6 +250,15 @@
     
     end function constructor_netcdf_o
     
+    function constructor_netcdf_algae_o()
+    
+    implicit none
+    class(netcdf_algae_o), pointer:: constructor_netcdf_algae_o
+    
+    allocate(constructor_netcdf_algae_o)
+    
+    end function constructor_netcdf_algae_o
+    
     subroutine init_netcdf(self, fn, first_lvl, last_lvl, model)
 
     implicit none
@@ -241,7 +277,6 @@
 
     nlev = last_lvl - first_lvl + 1
     self%first = .true.
-    print *, 'NetCDF version: ', trim(nf90_inq_libvers())
     self%nc_id = -1
     call check_err(nf90_create(fn, NF90_CLOBBER, self%nc_id))
     !define the dimensions
@@ -271,8 +306,8 @@
                 long_name=model%diagnostic_variables(ip)%long_name,missing_value=model%diagnostic_variables(ip)%missing_value))
         end if
     end do
-    call check_err(nf90_def_var(self%nc_id, "T", NF90_REAL, dim_ids, self%t_id))
-    call check_err(nf90_def_var(self%nc_id, "S", NF90_REAL, dim_ids, self%s_id))
+    call check_err(nf90_def_var(self%nc_id, "t", NF90_REAL, dim_ids, self%t_id))
+    call check_err(nf90_def_var(self%nc_id, "s", NF90_REAL, dim_ids, self%s_id))
     call check_err(nf90_def_var(self%nc_id, "Kz2", NF90_REAL, dim_ids, self%kz2_id))
     call check_err(nf90_def_var(self%nc_id, "radiative_flux", NF90_REAL, dim_ids, self%iz_id))
     !end define
@@ -280,11 +315,61 @@
     
     end subroutine init_netcdf
     
-    subroutine save_netcdf(self, first_lvl, last_lvl, LevMax, julianday, Cc, tem2, sal2, Kz2, model, z, iz)
+    subroutine init_netcdf_algae(self, fn, first_lvl, last_lvl)
+
+    implicit none
+    class(netcdf_algae_o):: self
+    !input:
+    character(len = *), intent(in)          :: fn
+    integer, intent(in)                     :: first_lvl, last_lvl
+    !dimension ids
+    integer                                 :: z_dim_id, time_dim_id
+    integer                                 :: ip, nlev
+    !dimension lengths
+    integer, parameter                      :: time_len = NF90_UNLIMITED
+    integer                                 :: dim1d
+    integer                                 :: dim_ids(2)
+
+    nlev = last_lvl - first_lvl + 1
+    self%first = .true.
+    self%nc_id = -1
+    call check_err(nf90_create(fn, NF90_CLOBBER, self%nc_id))
+    !define the dimensions
+    call check_err(nf90_def_dim(self%nc_id, "z", nlev, z_dim_id))
+    call check_err(nf90_def_dim(self%nc_id, "time", time_len, time_dim_id))
+    !define coordinates
+    dim1d = z_dim_id
+    call check_err(nf90_def_var(self%nc_id, "z", NF90_REAL, dim1d, self%z_id))
+    dim1d = time_dim_id
+    call check_err(nf90_def_var(self%nc_id, "time", NF90_REAL, dim1d, self%time_id))
+    !define variables
+    dim_ids(1) = z_dim_id
+    dim_ids(2) = time_dim_id
+    call check_err(nf90_def_var(self%nc_id, "bulk_temperature", NF90_REAL, dim_ids, self%bulk_temperature_id))
+    call check_err(nf90_def_var(self%nc_id, "bulk_salinity", NF90_REAL, dim_ids, self%bulk_salinity_id))
+    call check_err(nf90_def_var(self%nc_id, "bulk_density", NF90_REAL, dim_ids, self%bulk_density_id))
+    call check_err(nf90_def_var(self%nc_id, "photosynthetic_active_radiation", NF90_REAL, dim_ids, self%par_z_id))
+    call check_err(nf90_def_var(self%nc_id, "brine_temperature", NF90_REAL, dim_ids, self%brine_temperature_id))
+    call check_err(nf90_def_var(self%nc_id, "brine_salinity", NF90_REAL, dim_ids, self%brine_salinity_id))
+    call check_err(nf90_def_var(self%nc_id, "brine_density", NF90_REAL, dim_ids, self%brine_density_id))
+    call check_err(nf90_def_var(self%nc_id, "algae_carbon", NF90_REAL, dim_ids, self%a_carbon_id))
+    call check_err(nf90_def_var(self%nc_id, "algae_nitrogen", NF90_REAL, dim_ids, self%a_nitrogen_id))
+    call check_err(nf90_def_var(self%nc_id, "algae_phosphorus", NF90_REAL, dim_ids, self%a_phosphorus_id))
+    call check_err(nf90_def_var(self%nc_id, "nh4", NF90_REAL, dim_ids, self%nh4_id))
+    call check_err(nf90_def_var(self%nc_id, "no2", NF90_REAL, dim_ids, self%no2_id))
+    call check_err(nf90_def_var(self%nc_id, "no3", NF90_REAL, dim_ids, self%no3_id))
+    call check_err(nf90_def_var(self%nc_id, "po4", NF90_REAL, dim_ids, self%po4_id))
+    call check_err(nf90_def_var(self%nc_id, "brine_relative_volume", NF90_REAL, dim_ids, self%brine_relative_volume_id))
+    !end define
+    call check_err(nf90_enddef(self%nc_id))
+    
+    end subroutine init_netcdf_algae
+    
+    subroutine save_netcdf(self, first_lvl, last_lvl, lev_max, julianday, Cc, tem2, sal2, Kz2, model, z, iz)
 
     implicit none
     class(netcdf_o):: self
-    integer, intent(in)                     :: first_lvl, last_lvl, julianday, LevMax
+    integer, intent(in)                     :: first_lvl, last_lvl, julianday, lev_max
     real(rk), dimension(:, :), intent(in)   :: Cc
     real(rk), dimension(:, :), intent(in)   :: tem2, sal2, Kz2
     type (type_model), intent(in)           :: model
@@ -292,7 +377,7 @@
     
     integer                                 :: ip, i
     integer                                 :: edges(2), start(2), start_time(1), edges_time(1)
-    real(rk)                                :: temp_matrix(LevMax)
+    real(rk)                                :: temp_matrix(lev_max)
     real                                    :: dum(1) !nevermind what is it but it works
         
     !write data
@@ -330,6 +415,68 @@
     
     end subroutine save_netcdf
     
+    subroutine save_netcdf_algae(self, ice_l, first_lvl, last_lvl, lev_max, julianday)
+
+    use ice_algae_lib
+    
+    implicit none
+    class(netcdf_algae_o):: self
+    type(ice_layer), pointer, dimension(:), intent(in)  :: ice_l
+    integer, intent(in)                                 :: first_lvl, last_lvl, lev_max, julianday
+    !internal parameters
+    real(rk), dimension(lev_max)                  :: z
+    real(rk), dimension(lev_max)                  :: par_z
+    real(rk), dimension(lev_max)                  :: bulk_temperature, bulk_salinity, bulk_density
+    real(rk), dimension(lev_max)                  :: brine_temperature, brine_salinity, brine_density
+    real(rk), dimension(lev_max)                  :: a_carbon, a_nitrogen, a_phosphorus
+    real(rk), dimension(lev_max)                  :: nh4, no2, no3, po4
+    real(rk), dimension(lev_max)                  :: brine_relative_volume
+
+    integer                                 :: ip, i
+    integer                                 :: edges(2), start(2), start_time(1), edges_time(1)
+    real(rk)                                :: temp_matrix(lev_max)
+    real                                    :: dum(1) !nevermind what is it but it works
+    
+    call ice_l%get_algae(z, par_z, bulk_temperature, bulk_salinity, &
+        bulk_density, brine_temperature, brine_salinity, brine_density, &
+        a_carbon, a_nitrogen, a_phosphorus, nh4, no2, no3, po4, brine_relative_volume)
+    
+    !write data
+    edges(1) = last_lvl - first_lvl + 1
+    edges(2) = 1
+    start(1) = 1
+    start(2) = julianday
+    start_time(1) = julianday
+    edges_time(1) = 1
+
+    if ( self%first .and. self%nc_id .ne. -1) then
+        call check_err(nf90_put_var(self%nc_id, self%z_id,  z(first_lvl:last_lvl), start, edges))
+        self%first = .false.
+    end if
+    
+    dum(1) = real(julianday)
+    if (self%nc_id .ne. -1) then
+        call check_err(nf90_put_var(self%nc_id, self%time_id, dum, start_time, edges_time))
+        call check_err(nf90_put_var(self%nc_id, self%par_z_id, par_z(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%bulk_temperature_id, bulk_temperature(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%bulk_salinity_id, bulk_salinity(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%bulk_density_id, bulk_density(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%brine_temperature_id, brine_temperature(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%brine_salinity_id, brine_salinity(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%brine_density_id, brine_density(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%a_carbon_id, a_carbon(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%a_nitrogen_id, a_nitrogen(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%a_phosphorus_id, a_phosphorus(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%nh4_id, nh4(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%no2_id, no2(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%no3_id, no3(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%po4_id, po4(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%brine_relative_volume_id, brine_relative_volume(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_sync(self%nc_id))        
+    end if
+    
+    end subroutine save_netcdf_algae
+    
     subroutine close_netcdf(self)
         
     implicit none
@@ -338,11 +485,21 @@
         call check_err(nf90_close(self%nc_id))
         deallocate(self%parameter_id)
         deallocate(self%parameter_id_diag)
-        write (*,'(a)') "finished"
     end if
     self%nc_id = -1
         
     end subroutine close_netcdf
+    
+    subroutine close_netcdf_algae(self)
+        
+    implicit none
+    class(netcdf_algae_o):: self
+    if (self%nc_id .ne. -1) then
+        call check_err(nf90_close(self%nc_id))
+    end if
+    self%nc_id = -1
+        
+    end subroutine close_netcdf_algae
     
     integer function set_attributes(ncid,id,                         &
                                     units,long_name,                 &

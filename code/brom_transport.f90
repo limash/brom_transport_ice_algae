@@ -1,6 +1,6 @@
     module brom_transport
     !REVISION HISTORY:
-    !Original author(s): Shamil Yakubov, Evgeniy Yakushev
+    !Original author(s): Evgeniy Yakushev, Shamil Yakubov
     !Shamil_11_2015 - yaml configurator was added
     !Shamil_12_2015 - ice dependencies were added
     !Shamil_01_2016 - ice_algae object was added
@@ -36,8 +36,8 @@
     real(rk)                                                        :: io, wind_speed, pco2_atm, &
                                                                        width_bbl, resolution_bbl, width_bioturbation, &
                                                                        resolution_bioturbation, width_sediments, resolution_sediments
-    real(rk)                                                        :: ice_alga, ice_dom
     type(ice_layer), pointer, dimension(:)  :: ice_l=>null()
+    type(netcdf_algae_o), pointer           :: netcdf_ice=>null()
     type(netcdf_o), pointer                 :: netcdf_pelagic=>null()
     type(netcdf_o), pointer                 :: netcdf_bottom=>null()
 
@@ -132,8 +132,10 @@
     !ice algae initialization
     ice_l  => ice_layer(number_of_layers)
     !initializing output
+    netcdf_ice => netcdf_algae_o()
     netcdf_pelagic => netcdf_o()
     netcdf_bottom  => netcdf_o()
+    call netcdf_ice%init_netcdf_algae("output_a.nc", 1, number_of_layers)
     call netcdf_pelagic%init_netcdf("output_p.nc", 1, boundary_water_bbl - 1, model)
     call netcdf_bottom%init_netcdf("output_b.nc", boundary_water_bbl, lev_max, model)
     
@@ -211,7 +213,7 @@
     i_CaCO3 = find_index(par_name, 'niva_brom_redox_CaCO3')          
     i_FeS2 = find_index(par_name, 'niva_brom_redox_FeS2')
     
-    idt = int(1. / dt)                                      !number of cycles per day
+    idt = int(1. / dt)                               !number of cycles per day
     
     do  i = 0, last_day - 1                          !BIG Cycle ("i"-days)
         !it calculates julian day and year
@@ -221,7 +223,7 @@
         end if
         
         !compute surface irradiance
-        io = max(0., 80. * cos((lat_light - (23.5 * sin(2. * 3.14 * (julianday - 81.) /365.))) * 3.14 / 180.))
+        io = max(0., 80. * cos((lat_light - (23.5 * sin(2. * 3.14 * (julianday - 81.) /365.))) * 3.14 / 180.)) !W m-2
         
         !resend data that depend on julianday to FABM
         call fabm_link_bulk_data(model, standard_variables%temperature, tem2(:, julianday))
@@ -234,29 +236,33 @@
             use_bound_low(i_SO4) = .true.
             bound_low(i_SO4) = so4
         end if
-        if (i_Mn4/=-1 .and. ice_area(julianday) < 0.7) then
+        if (i_Mn4/=-1 .and. ice_area(julianday) < 0.5) then
             use_bound_up(i_Mn4) = .true.
             bound_up(i_Mn4) = mn4
         end if
-        if (i_Fe3/=-1 .and. ice_area(julianday) < 0.7) then
+        if (i_Fe3/=-1 .and. ice_area(julianday) < 0.5) then
             use_bound_up(i_Fe3) = .true.
             bound_up(i_Fe3) = fe3
         end if
-        if (i_NO3 /= -1 .and. ice_area(julianday) < 0.7) then
+        if (i_NO3 /= -1 .and. ice_area(julianday) < 0.5) then
             use_bound_up(i_NO3) = .true.
-            bound_up(i_NO3) = 0. + (1. + sin(2 * 3.14 * (julianday - 175.) / 365.)) * 3.8
+            bound_up(i_NO3) = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 3.8! max 7.5 microM at day 205 approx.
         end if
-        if (i_PO4 /= -1 .and. ice_area(julianday) < 0.7) then
+        if (i_PO4 /= -1 .and. ice_area(julianday) < 0.5) then
             use_bound_up(i_PO4) = .true.
-            bound_up(i_PO4) = 0. + (1. + sin(2 * 3.14 * (julianday - 175.) / 365.)) * 0.45
+            bound_up(i_PO4) = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 0.45! max 2 microM at day 205 approx.
         end if
-        if (i_Si /= -1 .and. ice_area(julianday) < 0.7) then
+        if (i_Si /= -1 .and. ice_area(julianday) < 0.5) then
             use_bound_up(i_Si)  = .true.
-            bound_up(i_Si)  = 0. + (1. + sin(2 * 3.14 * (julianday - 175.) / 365.)) * 2.0
+            bound_up(i_Si)  = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 2.0! max 4 microM at day 205 approx.
         end if
         if (i_CaCO3 /= -1) then
             use_bound_low(i_CaCO3) = .true.
             bound_low(i_CaCO3) = caco3
+        end if
+        
+        if(julianday == 249) then
+            continue
         end if
         
         !ice algae processes calculated once per day is here, also recalculates io for bottom of ice layer
@@ -314,15 +320,15 @@
             if (any(isnan(cc))) then
                 stop
             end if
-            
         end do
-        
-        ice_alga = ice_l%get_algae()
+       
         !-------NETCDF-----------------------------------------------------------------------------------------    
         write (*,'(a, i4, a, i4)') " model year:", model_year, "; julianday:", julianday
+        call netcdf_ice%save_netcdf_algae(ice_l, 1, number_of_layers, number_of_layers, julianday)
         call netcdf_pelagic%save_netcdf(1, boundary_water_bbl - 1,  lev_max, julianday, cc, tem2, sal2, Kz2, model, z, iz)
         call netcdf_bottom%save_netcdf(boundary_water_bbl, lev_max, lev_max, julianday, cc, tem2, sal2, Kz2, model, z, iz)
         if (i == last_day - 1) then
+            call netcdf_ice%close_netcdf_algae()
             call netcdf_pelagic%close_netcdf()
             call netcdf_bottom%close_netcdf()
             call saving_state_variables_data(model_year, julianday, lev_max, par_max, par_name, z, cc)

@@ -13,7 +13,6 @@ instances:
       density: 1000.
       wind_speed: 5.
       pco2_atm: 370.
-#      Io: 80.
 #-----------------------------------------------
       bound(i_SO4): 25000.
       bound_up(i_Mn4): 5.E-5
