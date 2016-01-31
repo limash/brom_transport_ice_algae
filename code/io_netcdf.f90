@@ -37,7 +37,7 @@
         !netCDF file id
         integer                                 :: nc_id
         !parameter_ids
-        integer                                 :: time_id
+        integer                                 :: time_id, ice_id
         integer                                 :: z_id
         integer                                 :: par_z_id
         integer                                 :: bulk_temperature_id, bulk_salinity_id, bulk_density_id
@@ -342,6 +342,7 @@
     call check_err(nf90_def_var(self%nc_id, "z", NF90_REAL, dim1d, self%z_id))
     dim1d = time_dim_id
     call check_err(nf90_def_var(self%nc_id, "time", NF90_REAL, dim1d, self%time_id))
+    call check_err(nf90_def_var(self%nc_id, "ice", NF90_REAL, dim1d, self%ice_id))
     !define variables
     dim_ids(1) = z_dim_id
     dim_ids(2) = time_dim_id
@@ -378,7 +379,7 @@
     integer                                 :: ip, i
     integer                                 :: edges(2), start(2), start_time(1), edges_time(1)
     real(rk)                                :: temp_matrix(lev_max)
-    real                                    :: dum(1) !nevermind what is it but it works
+    real                                    :: foo(1) !nevermind what is it but it works
         
     !write data
     edges(1) = last_lvl - first_lvl + 1
@@ -393,9 +394,9 @@
         self%first = .false.
     end if
     
-    dum(1) = real(julianday)
+    foo(1) = real(julianday)
     if (self%nc_id .ne. -1) then
-        call check_err(nf90_put_var(self%nc_id, self%time_id, dum, start_time, edges_time))
+        call check_err(nf90_put_var(self%nc_id, self%time_id, foo, start_time, edges_time))
         
         do ip = 1, size(model%state_variables)
             call check_err(nf90_put_var(self%nc_id, self%parameter_id(ip), Cc(first_lvl:last_lvl, ip), start, edges))
@@ -415,7 +416,7 @@
     
     end subroutine save_netcdf
     
-    subroutine save_netcdf_algae(self, ice_l, first_lvl, last_lvl, lev_max, julianday)
+    subroutine save_netcdf_algae(self, ice_l, first_lvl, last_lvl, lev_max, julianday, ice)
 
     use ice_algae_lib
     
@@ -423,6 +424,7 @@
     class(netcdf_algae_o):: self
     type(ice_layer), pointer, dimension(:), intent(in)  :: ice_l
     integer, intent(in)                                 :: first_lvl, last_lvl, lev_max, julianday
+    real(rk), intent(in)                                :: ice
     !internal parameters
     real(rk), dimension(lev_max)                  :: z
     real(rk), dimension(lev_max)                  :: par_z
@@ -435,7 +437,7 @@
     integer                                 :: ip, i
     integer                                 :: edges(2), start(2), start_time(1), edges_time(1)
     real(rk)                                :: temp_matrix(lev_max)
-    real                                    :: dum(1) !nevermind what is it but it works
+    real                                    :: foo(1), bar(1) !nevermind what is it but it works
     
     call ice_l%get_algae(z, par_z, bulk_temperature, bulk_salinity, &
         bulk_density, brine_temperature, brine_salinity, brine_density, &
@@ -454,9 +456,11 @@
         self%first = .false.
     end if
     
-    dum(1) = real(julianday)
+    foo(1) = real(julianday)
+    bar(1) = real(ice)
     if (self%nc_id .ne. -1) then
-        call check_err(nf90_put_var(self%nc_id, self%time_id, dum, start_time, edges_time))
+        call check_err(nf90_put_var(self%nc_id, self%time_id, foo, start_time, edges_time))
+        call check_err(nf90_put_var(self%nc_id, self%ice_id,  bar, start_time, edges_time))
         call check_err(nf90_put_var(self%nc_id, self%par_z_id, par_z(first_lvl:last_lvl), start, edges))
         call check_err(nf90_put_var(self%nc_id, self%bulk_temperature_id, bulk_temperature(first_lvl:last_lvl), start, edges))
         call check_err(nf90_put_var(self%nc_id, self%bulk_salinity_id, bulk_salinity(first_lvl:last_lvl), start, edges))
