@@ -169,49 +169,49 @@
                        i_Baae, i_Bhae, i_Baan, i_Bhan, i_Hplus, i_CaCO3, i_FeS2, i_MnCO3
         
     !getting parameters from brom.yaml
-    lat_light = get_brom_par("lat_light")
-    kc = get_brom_par("kc")
-    k_erlov = get_brom_par("k_erlov")
-    freq_az = get_brom_par("freq_az")
-    freq_sed  = get_brom_par("freq_sed ")
-    last_day = get_brom_par("last_day")
-    so4 = get_brom_par("bound(i_SO4)")
-    mn4 = get_brom_par("bound_up(i_Mn4)")
-    fe3 = get_brom_par("bound_up(i_Fe3)")
-    caco3 = get_brom_par("bound_low(i_CaCO3)")
+    lat_light   = get_brom_par("lat_light")
+    kc          = get_brom_par("kc")
+    k_erlov     = get_brom_par("k_erlov")
+    freq_az     = get_brom_par("freq_az")
+    freq_sed    = get_brom_par("freq_sed ")
+    last_day    = get_brom_par("last_day")
+    so4         = get_brom_par("bound(i_SO4)")
+    mn4         = get_brom_par("bound_up(i_Mn4)")
+    fe3         = get_brom_par("bound_up(i_Fe3)")
+    caco3       = get_brom_par("bound_low(i_CaCO3)")
     
-    i_O2 = find_index(par_name, 'niva_brom_redox_O2')              
-    i_NO3 = find_index(par_name, 'niva_brom_redox_NO3')             
-    i_NO2 = find_index(par_name, 'niva_brom_redox_NO2')            
-    i_NH4 = find_index(par_name, 'niva_brom_redox_NH4')         
-    i_DON = find_index(par_name, 'niva_brom_redox_DON')         
-    i_PON = find_index(par_name, 'niva_brom_redox_PON')            
-    i_PO4 = find_index(par_name, 'niva_brom_redox_PO4')      
-    i_Si = find_index(par_name, 'niva_brom_redox_Si')      
-    i_Sipart = find_index(par_name, 'niva_brom_redox_Sipart')          
-    i_Mn4 = find_index(par_name, 'niva_brom_redox_Mn4')           
-    i_Mn2 = find_index(par_name, 'niva_brom_redox_Mn2')          
-    i_Mn3 = find_index(par_name, 'niva_brom_redox_Mn3')          
-    i_MnS = find_index(par_name, 'niva_brom_redox_MnS')
-    i_MnCO3 = find_index(par_name, 'niva_brom_redox_MnCO3')       
-    i_Fe3 = find_index(par_name, 'niva_brom_redox_Fe3')          
-    i_Fe2 = find_index(par_name, 'niva_brom_redox_Fe2')          
-    i_FeS = find_index(par_name, 'niva_brom_redox_FeS')          
-    i_SO4 = find_index(par_name, 'niva_brom_redox_SO4')          
-    i_S2O3 = find_index(par_name, 'niva_brom_redox_S2O3')          
-    i_S0 = find_index(par_name, 'niva_brom_redox_S0')           
-    i_H2S = find_index(par_name, 'niva_brom_redox_H2S')         
-    i_Phy = find_index(par_name, 'niva_brom_bio_Phy')          
-    i_Zoo = find_index(par_name, 'niva_brom_bio_Het')          
-    i_Baae = find_index(par_name, 'niva_brom_redox_Baae')           
-    i_Bhae = find_index(par_name, 'niva_brom_redox_Bhae')          
-    i_Baan = find_index(par_name, 'niva_brom_redox_Baan')          
-    i_Bhan = find_index(par_name, 'niva_brom_redox_Bhan')          
-    i_DIC = find_index(par_name, 'niva_brom_redox_DIC')          
-    i_Alk = find_index(par_name, 'niva_brom_redox_Alk')          
-    i_Hplus = find_index(par_name, 'niva_brom_redox_Hplus')          
-    i_CaCO3 = find_index(par_name, 'niva_brom_redox_CaCO3')          
-    i_FeS2 = find_index(par_name, 'niva_brom_redox_FeS2')
+    i_O2        = find_index(par_name, 'niva_brom_redox_O2')              
+    i_NO3       = find_index(par_name, 'niva_brom_redox_NO3')             
+    i_NO2       = find_index(par_name, 'niva_brom_redox_NO2')            
+    i_NH4       = find_index(par_name, 'niva_brom_redox_NH4')         
+    i_DON       = find_index(par_name, 'niva_brom_redox_DON')         
+    i_PON       = find_index(par_name, 'niva_brom_redox_PON')            
+    i_PO4       = find_index(par_name, 'niva_brom_redox_PO4')      
+    i_Si        = find_index(par_name, 'niva_brom_redox_Si')      
+    i_Sipart    = find_index(par_name, 'niva_brom_redox_Sipart')          
+    i_Mn4       = find_index(par_name, 'niva_brom_redox_Mn4')           
+    i_Mn2       = find_index(par_name, 'niva_brom_redox_Mn2')          
+    i_Mn3       = find_index(par_name, 'niva_brom_redox_Mn3')          
+    i_MnS       = find_index(par_name, 'niva_brom_redox_MnS')
+    i_MnCO3     = find_index(par_name, 'niva_brom_redox_MnCO3')       
+    i_Fe3       = find_index(par_name, 'niva_brom_redox_Fe3')          
+    i_Fe2       = find_index(par_name, 'niva_brom_redox_Fe2')          
+    i_FeS       = find_index(par_name, 'niva_brom_redox_FeS')          
+    i_SO4       = find_index(par_name, 'niva_brom_redox_SO4')          
+    i_S2O3      = find_index(par_name, 'niva_brom_redox_S2O3')          
+    i_S0        = find_index(par_name, 'niva_brom_redox_S0')           
+    i_H2S       = find_index(par_name, 'niva_brom_redox_H2S')         
+    i_Phy       = find_index(par_name, 'niva_brom_bio_Phy')          
+    i_Zoo       = find_index(par_name, 'niva_brom_bio_Het')          
+    i_Baae      = find_index(par_name, 'niva_brom_redox_Baae')           
+    i_Bhae      = find_index(par_name, 'niva_brom_redox_Bhae')          
+    i_Baan      = find_index(par_name, 'niva_brom_redox_Baan')          
+    i_Bhan      = find_index(par_name, 'niva_brom_redox_Bhan')          
+    i_DIC       = find_index(par_name, 'niva_brom_redox_DIC')          
+    i_Alk       = find_index(par_name, 'niva_brom_redox_Alk')          
+    i_Hplus     = find_index(par_name, 'niva_brom_redox_Hplus')          
+    i_CaCO3     = find_index(par_name, 'niva_brom_redox_CaCO3')          
+    i_FeS2      = find_index(par_name, 'niva_brom_redox_FeS2')
     
     idt = int(1. / dt)                               !number of cycles per day
     
@@ -236,25 +236,25 @@
             use_bound_low(i_SO4) = .true.
             bound_low(i_SO4) = so4
         end if
-        if (i_Mn4/=-1 .and. ice_area(julianday) < 0.5) then
+        if (i_Mn4/=-1 .and. ice_area(julianday) < 5) then
             use_bound_up(i_Mn4) = .true.
             bound_up(i_Mn4) = mn4
         end if
-        if (i_Fe3/=-1 .and. ice_area(julianday) < 0.5) then
+        if (i_Fe3/=-1 .and. ice_area(julianday) < 5) then
             use_bound_up(i_Fe3) = .true.
             bound_up(i_Fe3) = fe3
         end if
-        if (i_NO3 /= -1 .and. ice_area(julianday) < 0.5) then
+        if (i_NO3 /= -1 .and. ice_area(julianday) < 5) then
             use_bound_up(i_NO3) = .true.
-            bound_up(i_NO3) = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 3.8! max 7.5 microM at day 205 approx.
+            bound_up(i_NO3) = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 0.45! max 0.9 microM at day 205 approx.
         end if
-        if (i_PO4 /= -1 .and. ice_area(julianday) < 0.5) then
+        if (i_PO4 /= -1 .and. ice_area(julianday) < 5) then
             use_bound_up(i_PO4) = .true.
-            bound_up(i_PO4) = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 0.45! max 2 microM at day 205 approx.
+            bound_up(i_PO4) = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 0.07! max 0.14 microM at day 205 approx.
         end if
-        if (i_Si /= -1 .and. ice_area(julianday) < 0.5) then
+        if (i_Si /= -1 .and. ice_area(julianday) < 5) then
             use_bound_up(i_Si)  = .true.
-            bound_up(i_Si)  = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 2.0! max 4 microM at day 205 approx.
+            bound_up(i_Si)  = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 8.0! max 16 microM at day 205 approx.
         end if
         if (i_CaCO3 /= -1) then
             use_bound_low(i_CaCO3) = .true.
@@ -297,7 +297,7 @@
             do  ip = 1, freq_az
                 !compute surface fluxes in FABM
                 flux_sf = 0.
-                if (hice(julianday) < 0.1) then
+                if (hice(julianday) < 0.2) then
                     call fabm_do_surface(model,flux_sf)
                     flux_sf = flux_sf * dt * 86400.
                 end if

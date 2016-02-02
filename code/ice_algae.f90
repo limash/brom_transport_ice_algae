@@ -2,9 +2,14 @@
     
     !REVISION HISTORY:
     !Original author(s): Shamil Yakubov
-    !to do: does k_ice depend on chl?
-    !       z_conv equals 1 for now
+    !to do: does k_ice depend on chl? - update at every model step implementation
+    !       f_par integration in layers with algae for more precise light limitation
+    !       z_conv equals 1 for now - correction needed
     !       for nutreints in water the response should be implemented
+    !       implying recalculation of algae and nutrients properties while ice increase\decrease
+    !       (or maybe only for nutrients)
+    !       recruitment of algae - melnikov
+    !       Si and oxygen implementation
     
     use fabm_types, only: rk
     
