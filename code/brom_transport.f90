@@ -1,6 +1,6 @@
     module brom_transport
     !REVISION HISTORY:
-    !Original author(s): Evgeniy Yakushev, Shamil Yakubov
+    !Original author(s): Shamil Yakubov, Evgeniy Yakushev
     !Shamil_11_2015 - yaml configurator was added
     !Shamil_12_2015 - ice dependencies were added
     !Shamil_01_2016 - ice_algae object was added
@@ -236,23 +236,23 @@
             use_bound_low(i_SO4) = .true.
             bound_low(i_SO4) = so4
         end if
-        if (i_Mn4/=-1 .and. ice_area(julianday) < 5) then
+        if (i_Mn4/=-1 .and. ice_area(julianday) < 0.6) then
             use_bound_up(i_Mn4) = .true.
             bound_up(i_Mn4) = mn4
         end if
-        if (i_Fe3/=-1 .and. ice_area(julianday) < 5) then
+        if (i_Fe3/=-1 .and. ice_area(julianday) < 0.6) then
             use_bound_up(i_Fe3) = .true.
             bound_up(i_Fe3) = fe3
         end if
-        if (i_NO3 /= -1 .and. ice_area(julianday) < 5) then
+        if (i_NO3 /= -1 .and. ice_area(julianday) < 0.6) then
             use_bound_up(i_NO3) = .true.
             bound_up(i_NO3) = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 0.45! max 0.9 microM at day 205 approx.
         end if
-        if (i_PO4 /= -1 .and. ice_area(julianday) < 5) then
+        if (i_PO4 /= -1 .and. ice_area(julianday) < 0.6) then
             use_bound_up(i_PO4) = .true.
             bound_up(i_PO4) = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 0.07! max 0.14 microM at day 205 approx.
         end if
-        if (i_Si /= -1 .and. ice_area(julianday) < 5) then
+        if (i_Si /= -1 .and. ice_area(julianday) < 0.6) then
             use_bound_up(i_Si)  = .true.
             bound_up(i_Si)  = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 8.0! max 16 microM at day 205 approx.
         end if

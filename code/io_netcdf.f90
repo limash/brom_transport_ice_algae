@@ -38,7 +38,7 @@
         integer                                 :: nc_id
         !parameter_ids
         integer                                 :: time_id, ice_id
-        integer                                 :: z_id
+        integer                                 :: z_viz_id, z_id
         integer                                 :: par_z_id
         integer                                 :: bulk_temperature_id, bulk_salinity_id, bulk_density_id
         integer                                 :: brine_temperature_id, brine_salinity_id, brine_density_id
@@ -339,13 +339,14 @@
     call check_err(nf90_def_dim(self%nc_id, "time", time_len, time_dim_id))
     !define coordinates
     dim1d = z_dim_id
-    call check_err(nf90_def_var(self%nc_id, "z", NF90_REAL, dim1d, self%z_id))
+    call check_err(nf90_def_var(self%nc_id, "z", NF90_REAL, dim1d, self%z_viz_id))
     dim1d = time_dim_id
     call check_err(nf90_def_var(self%nc_id, "time", NF90_REAL, dim1d, self%time_id))
     call check_err(nf90_def_var(self%nc_id, "ice", NF90_REAL, dim1d, self%ice_id))
     !define variables
     dim_ids(1) = z_dim_id
     dim_ids(2) = time_dim_id
+    call check_err(nf90_def_var(self%nc_id, "layers' depth", NF90_REAL, dim_ids, self%z_id))
     call check_err(nf90_def_var(self%nc_id, "bulk_temperature", NF90_REAL, dim_ids, self%bulk_temperature_id))
     call check_err(nf90_def_var(self%nc_id, "bulk_salinity", NF90_REAL, dim_ids, self%bulk_salinity_id))
     call check_err(nf90_def_var(self%nc_id, "bulk_density", NF90_REAL, dim_ids, self%bulk_density_id))
@@ -426,7 +427,7 @@
     integer, intent(in)                                 :: first_lvl, last_lvl, lev_max, julianday
     real(rk), intent(in)                                :: ice
     !internal parameters
-    real(rk), dimension(lev_max)                  :: z
+    real(rk), dimension(lev_max)                  :: z, z_viz
     real(rk), dimension(lev_max)                  :: par_z
     real(rk), dimension(lev_max)                  :: bulk_temperature, bulk_salinity, bulk_density
     real(rk), dimension(lev_max)                  :: brine_temperature, brine_salinity, brine_density
@@ -451,14 +452,20 @@
     start_time(1) = julianday
     edges_time(1) = 1
 
+    z_viz(1) = 1.
+    do i = 2, lev_max
+        z_viz(i) = z_viz(i - 1) + 1.
+    end do
+    
     if ( self%first .and. self%nc_id .ne. -1) then
-        call check_err(nf90_put_var(self%nc_id, self%z_id,  z(first_lvl:last_lvl), start, edges))
+        call check_err(nf90_put_var(self%nc_id, self%z_viz_id,  z_viz, start, edges))
         self%first = .false.
     end if
     
     foo(1) = real(julianday)
     bar(1) = real(ice)
     if (self%nc_id .ne. -1) then
+        call check_err(nf90_put_var(self%nc_id, self%z_id,  z(first_lvl:last_lvl), start, edges))
         call check_err(nf90_put_var(self%nc_id, self%time_id, foo, start_time, edges_time))
         call check_err(nf90_put_var(self%nc_id, self%ice_id,  bar, start_time, edges_time))
         call check_err(nf90_put_var(self%nc_id, self%par_z_id, par_z(first_lvl:last_lvl), start, edges))

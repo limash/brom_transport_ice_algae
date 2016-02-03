@@ -9,7 +9,8 @@
     !       implying recalculation of algae and nutrients properties while ice increase\decrease
     !       (or maybe only for nutrients)
     !       recruitment of algae - melnikov
-    !       Si and oxygen implementation
+    !       Si and oxygen implementation!
+    !       parts of nitrite and nitrates of v_nina
     
     use fabm_types, only: rk
     
@@ -337,9 +338,9 @@
     
     io_e = io / 4.6
     if (snow_thick <= 0.005) then !albedo influence
-        par_alb = io * (1 - alb_ice)
+        par_alb = io * (1. - alb_ice)
     else
-        par_alb = io * (1 - alb_snow) * exp(-k_snow * snow_thick)
+        par_alb = io * (1. - alb_snow) * exp(-k_snow * snow_thick)
     end if
     
     par_scat = par_alb * io_ice !after scattered surface of ice
@@ -663,14 +664,25 @@
     class(ice_layer), dimension(:):: self
     integer:: i
     real(rk):: recruit = 0.01 !recruitment of algae on bottom
+    real(rk):: gpp = 0., resp = 0., &
+        exud = 0., mort = 0., melt = 0.
 
     do i = number_of_layers, 1, -1
         if (self(i)%is_bottom == .true.) then
-            self(i)%d_a_carbon = self(i)%a_carbon * (self%gpp(i)- self%resp(i) -&
-                      self%exud(i) - self%mort(i) - self%melt()) + recruit
+            gpp = self%gpp(i)
+            resp = self%resp(i)
+            exud = self%exud(i)
+            mort = self%mort(i)
+            melt = self%melt()
+            self(i)%d_a_carbon = self(i)%a_carbon * (gpp - resp -&
+                      exud - mort - melt) + recruit
         else
-            self(i)%d_a_carbon = self(i)%a_carbon * (self%gpp(i)- self%resp(i) -&
-                      self%exud(i) - self%mort(i))
+            gpp = self%gpp(i)
+            resp = self%resp(i)
+            exud = self%exud(i)
+            mort = self%mort(i)
+            self(i)%d_a_carbon = self(i)%a_carbon * (gpp - resp -&
+                      exud - mort)
         end if
     end do
     
@@ -683,9 +695,16 @@
     class(ice_layer), dimension(:):: self
     integer :: layer
     real(rk):: gpp
+    real(rk):: f_par = 0., f_s = 0., &
+        f_t = 0., f_nut = 0.
     
-    gpp = p_b * self%f_par(layer) * self%f_s(layer) * self%f_t(layer) *&
-          self%f_nut(layer) / chl_to_carbon
+    f_par = self%f_par(layer)
+    f_s = self%f_s(layer)
+    f_t = self%f_t(layer)
+    f_nut = self%f_nut(layer)
+    
+    gpp = p_b * f_par * f_s * f_t *&
+          f_nut / chl_to_carbon
     self(layer)%last_gpp = gpp
     
     end function gpp
@@ -769,6 +788,7 @@
     real(rk):: n_cell
     
     n_cell = self(layer)%a_nitrogen / self(layer)%a_carbon
+    if(isnan(n_cell)) n_cell = 0.
     
     end function n_cell
     
@@ -780,6 +800,7 @@
     real(rk):: p_cell
     
     p_cell = self(layer)%a_phosphorus / self(layer)%a_carbon
+    if(isnan(p_cell)) p_cell = 0.
     
     end function p_cell
     
@@ -835,7 +856,7 @@
     !algae mortality at temperature 0 C
     real(rk), parameter:: phy_mort = 9.23e-5 ![h-1]
     
-    mort = phy_mort * self(layer)%last_f_t
+    mort = phy_mort * self(layer)%last_f_t! or nutrient concentration should be here?
     self(layer)%last_mort = mort
     
     end function mort
@@ -988,7 +1009,7 @@
     if (self(layer)%a_phosphorus > phos_min .and. self(layer)%a_phosphorus < phos_max &
         .and. foo > min_n_p) then
         uptake_p = (v_max_p * self(layer)%po4) / (k_p + self(layer)%po4) *&
-            (1 - (self%p_cell(layer) / phos_max))
+            (1. - (self%p_cell(layer) / phos_max))
     else
         uptake_p = 0.
     end if
