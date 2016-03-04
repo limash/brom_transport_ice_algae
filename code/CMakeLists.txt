@@ -42,7 +42,7 @@ add_subdirectory(${FABM_BASE}/src fabm)
 set(FABM_LIBRARIES fabm)
 set(FABM_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/fabm/modules)
 
-add_executable(brom WIN32
+add_executable(brom
                calculate.f90
                io_netcdf.f90
                main.f90
@@ -53,11 +53,36 @@ set_property(TARGET brom APPEND PROPERTY INCLUDE_DIRECTORIES "${FABM_INCLUDE_DIR
 set_property(TARGET brom APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${FABM_INCLUDE_DIRS}")
 set_property(TARGET brom PROPERTY Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/modules)
 set_property(TARGET brom APPEND PROPERTY INCLUDE_DIRECTORIES "${FABM_INCLUDE_DIRS}")
+
+if(WIN32)
 set_property(TARGET brom APPEND PROPERTY COMPILE_FLAGS "/nofpp")
+endif()
+
 target_link_libraries(brom ${FABM_LIBRARIES})
 target_link_libraries(brom "${NetCDF_LIBRARIES}")
 if (NetCDF_STATIC_MSVC_BUILD)
   set_property(TARGET brom PROPERTY LINK_FLAGS_DEBUG "/NODEFAULTLIB:\"libcmt\"")
   set_property(TARGET brom PROPERTY LINK_FLAGS_DEBUG "/NODEFAULTLIB:\"libcmtd\"")
 endif()
+
+if(WIN32)
 target_compile_options(brom PRIVATE /nothreads /libs:static /libs:qwin)
+endif()
+
+# Set default installation prefix.
+if(WIN32)
+  if(DEFINED ENV{LOCALAPPDATA})
+    set(DEFAULT_PREFIX "$ENV{LOCALAPPDATA}/brom-ice")
+  else()
+    set(DEFAULT_PREFIX "$ENV{APPDATA}/brom-ice")
+  endif()
+else()
+  set(DEFAULT_PREFIX "$ENV{HOME}/local/brom-ice")
+endif()
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  # Still on CMake default - override with our own default.
+  set(CMAKE_INSTALL_PREFIX ${DEFAULT_PREFIX} CACHE PATH "Directory to install BROM in" FORCE)
+else()
+  # Just set the doc string for the variable.
+  set(CMAKE_INSTALL_PREFIX ${DEFAULT_PREFIX} CACHE PATH "Directory to install BROM in")
+endif()
