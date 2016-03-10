@@ -244,7 +244,7 @@
     function constructor_netcdf_o()
     
     implicit none
-    class(netcdf_o), pointer:: constructor_netcdf_o
+    type(netcdf_o), pointer:: constructor_netcdf_o
     
     allocate(constructor_netcdf_o)
     
@@ -253,7 +253,7 @@
     function constructor_netcdf_algae_o()
     
     implicit none
-    class(netcdf_algae_o), pointer:: constructor_netcdf_algae_o
+    type(netcdf_algae_o), pointer:: constructor_netcdf_algae_o
     
     allocate(constructor_netcdf_algae_o)
     
@@ -440,9 +440,9 @@
     real(rk)                                :: temp_matrix(lev_max)
     real                                    :: foo(1), bar(1) !nevermind what is it but it works
     
-    call ice_l%get_algae(z, par_z, bulk_temperature, bulk_salinity, &
-        bulk_density, brine_temperature, brine_salinity, brine_density, &
-        a_carbon, a_nitrogen, a_phosphorus, nh4, no2, no3, po4, brine_relative_volume)
+    !call ice_l%get_algae(z, par_z, bulk_temperature, bulk_salinity, &
+    !    bulk_density, brine_temperature, brine_salinity, brine_density, &
+    !    a_carbon, a_nitrogen, a_phosphorus, nh4, no2, no3, po4, brine_relative_volume)
     
     !write data
     edges(1) = last_lvl - first_lvl + 1

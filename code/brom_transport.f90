@@ -130,7 +130,7 @@
     end if
     
     !ice algae initialization
-    ice_l  => ice_layer(number_of_layers)
+    ice_l => ice_layer(number_of_layers)
     !initializing output
     netcdf_ice => netcdf_algae_o()
     netcdf_pelagic => netcdf_o()
@@ -266,8 +266,8 @@
         end if
         
         !ice algae processes calculated once per day is here, also recalculates io for bottom of ice layer
-        call ice_l%do_slow_ice(t_ice(julianday), tem2(1, julianday), sal2(1, julianday), &
-             hice(julianday), io, snow_thick(julianday), julianday, lat_light)
+        !call ice_l%do_slow_ice(t_ice(julianday), tem2(1, julianday), sal2(1, julianday), &
+        !     hice(julianday), io, snow_thick(julianday), julianday, lat_light)
         
         !compute irradiance at depth
         do k = 1, lev_max
@@ -292,7 +292,7 @@
             cc = max(0.00000000001, (cc + dcc))
             
             !ice algae
-            call ice_l%do_ice(cc(1, i_NH4), cc(1, i_NO2), cc(1, i_NO3), cc(1, i_PO4), dt, hice(julianday))
+            !call ice_l%do_ice(cc(1, i_NH4), cc(1, i_NO2), cc(1, i_NO3), cc(1, i_PO4), dt, hice(julianday))
             
             do  ip = 1, freq_az
                 !compute surface fluxes in FABM
