@@ -1,7 +1,7 @@
 instances:
   brom:
     initialization:
-      is_input_data: 1                          # is it needed to use input.dat as initial conditions, 0 - no, not 0 - yes
+      is_input_data: 0                          # is it needed to use input.dat as initial conditions, 0 - no, not 0 - yes
 #-----------------------------------------------
       width_bbl: 0.5
       resolution_bbl: 0.025

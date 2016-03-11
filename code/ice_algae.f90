@@ -71,17 +71,17 @@
         real(rk):: last_mort
     contains
         private
-        !procedure, public:: do_slow_ice
+        procedure, public:: do_slow_ice
         !procedure, public:: do_ice
         !procedure, public:: get_algae
-        !procedure:: do_grid
-        !procedure:: do_par
-        !procedure:: do_bulk_temperature
-        !procedure:: do_bulk_salinity
-        !procedure:: do_brine_salinity
-        !procedure:: do_brine_density
-        !procedure:: do_bulk_density
-        !procedure:: do_brine_relative_volume
+        procedure:: do_grid
+        procedure:: do_par
+        procedure:: do_bulk_temperature
+        procedure:: do_bulk_salinity
+        procedure:: do_brine_salinity
+        procedure:: do_brine_density
+        procedure:: do_bulk_density
+        procedure:: do_brine_relative_volume
         !procedure:: do_nitrogen
         !procedure:: do_phosphorus
         !procedure:: do_bottom
@@ -123,7 +123,7 @@
     function constructor_ice_layer(number_of_layers_in)
     
         implicit none
-        type(ice_layer), dimension(:), pointer:: constructor_ice_layer
+        type(ice_layer), pointer:: constructor_ice_layer
         integer, intent(in):: number_of_layers_in
         
         number_of_layers = number_of_layers_in
@@ -153,73 +153,73 @@
     
     end function constructor_ice_layer
     
-    !subroutine do_slow_ice(self, air_temp, water_temp, water_sal, ice_thickness, &
-    !                       io, snow_thick, julian_day, lat)
-    !    !subroutine for variables should be calculated once per day
-    !    
-    !    implicit none
-    !    class(ice_layer), dimension(:):: self
-    !    real(rk), intent(in) :: air_temp, water_temp, water_sal, ice_thickness
-    !    real(rk), intent(in) :: snow_thick, lat
-    !    integer,  intent(in) :: julian_day
-    !    real(rk), intent(inout):: io
-    !    real(rk)               :: foo
-    !    
-    !    if (ice_thickness < 0.2) then
-    !        self%z = 0.
-    !        self%dz = 0.
-    !        self%par_z = 0.
-    !        self%bulk_temperature = 0.
-    !        self%bulk_salinity = 0.
-    !        self%bulk_density = 0.
-    !        self%brine_temperature = 0.
-    !        self%brine_salinity = 0.
-    !        self%brine_density = 0.
-    !        self%a_carbon = 0.
-    !        self%a_nitrogen = 0.
-    !        self%a_phosphorus = 0.
-    !        self%d_a_carbon = 0.
-    !        self%d_a_nitrogen = 0.
-    !        self%d_a_phosphorus = 0.
-    !        self%nh4 = 0.
-    !        self%d_nh4 = 0.
-    !        self%no2 = 0.
-    !        self%d_no2 = 0.
-    !        self%no3 = 0.
-    !        self%d_no3 = 0.
-    !        self%po4 = 0.
-    !        self%d_po4 = 0.
-    !        self%brine_relative_volume = 0.
-    !    end if
-    !
-    !    call self%do_grid(ice_thickness)
-    !    
-    !    call self%do_par(io, snow_thick)
-    !    
-    !    call self%do_bulk_temperature(air_temp, water_temp, ice_thickness)
-    !    self%brine_temperature = self%bulk_temperature
-    !    
-    !    call self%do_bulk_salinity(ice_thickness, water_sal)
-    !    call self%do_brine_salinity()
-    !    
-    !    call self%do_brine_density()
-    !    call self%do_bulk_density()
-    !    
-    !    call self%do_brine_relative_volume()
-    !    
-    !    !here we will calculate the length of the day 
-    !    !depends on latitude and julianday
-    !    foo = cos((julian_day + 10.) * 2. * 3.14159 / 365.25)
-    !    day_length = real(12. - 24./3.14159 * asin(tan(lat * 3.14159 / 180.) *&
-    !                 tan(23.5 * 3.14159 / 180.) * foo))
-    !    !to fix complex values
-    !    if (isnan(day_length) .and. foo > 0) day_length = 0.
-    !    if (isnan(day_length) .and. foo < 0) day_length = 24.
-    !    !ice_growth calculation
-    !    ice_growth = ice_thickness - prev_ice_thickness
-    !    prev_ice_thickness = ice_thickness
-    !    
-    !end subroutine do_slow_ice
+    subroutine do_slow_ice(self, air_temp, water_temp, water_sal, ice_thickness, &
+                           io, snow_thick, julian_day, lat)
+        !subroutine for variables should be calculated once per day
+        
+        implicit none
+        class(ice_layer):: self
+        real(rk), intent(in) :: air_temp, water_temp, water_sal, ice_thickness
+        real(rk), intent(in) :: snow_thick, lat
+        integer,  intent(in) :: julian_day
+        real(rk), intent(inout):: io
+        real(rk)               :: foo
+        
+        if (ice_thickness < 0.2) then
+            self%z = 0.
+            self%dz = 0.
+            self%par_z = 0.
+            self%bulk_temperature = 0.
+            self%bulk_salinity = 0.
+            self%bulk_density = 0.
+            self%brine_temperature = 0.
+            self%brine_salinity = 0.
+            self%brine_density = 0.
+            self%a_carbon = 0.
+            self%a_nitrogen = 0.
+            self%a_phosphorus = 0.
+            self%d_a_carbon = 0.
+            self%d_a_nitrogen = 0.
+            self%d_a_phosphorus = 0.
+            self%nh4 = 0.
+            self%d_nh4 = 0.
+            self%no2 = 0.
+            self%d_no2 = 0.
+            self%no3 = 0.
+            self%d_no3 = 0.
+            self%po4 = 0.
+            self%d_po4 = 0.
+            self%brine_relative_volume = 0.
+        end if
+    
+        call self%do_grid(ice_thickness)
+        
+        call self%do_par(io, snow_thick)
+        
+        call self%do_bulk_temperature(air_temp, water_temp, ice_thickness)
+        self%brine_temperature = self%bulk_temperature
+        
+        call self%do_bulk_salinity(ice_thickness, water_sal)
+        call self%do_brine_salinity()
+        
+        call self%do_brine_density()
+        call self%do_bulk_density()
+        
+        call self%do_brine_relative_volume()
+        
+        !here we will calculate the length of the day 
+        !depends on latitude and julianday
+        foo = cos((julian_day + 10.) * 2. * 3.14159 / 365.25)
+        day_length = real(12. - 24./3.14159 * asin(tan(lat * 3.14159 / 180.) *&
+                     tan(23.5 * 3.14159 / 180.) * foo))
+        !to fix complex values
+        if (isnan(day_length) .and. foo > 0) day_length = 0.
+        if (isnan(day_length) .and. foo < 0) day_length = 24.
+        !ice_growth calculation
+        ice_growth = ice_thickness - prev_ice_thickness
+        prev_ice_thickness = ice_thickness
+        
+    end subroutine do_slow_ice
     !
     !subroutine do_ice(self, nh4, no2, no3, po4, dt, ice_thickness)
     !
@@ -293,174 +293,174 @@
     !
     !end subroutine get_algae
     
-    !subroutine do_grid(self, hice)
-    !!it makes grid, bottom layer is on lower edge of ice and equals 3 cm
-    !!other layers depth = ice_thickness  - 3 cm / number of layers - 1
-    !    
-    !    implicit none
-    !    class(ice_layer), dimension(:):: self
-    !    real(rk), intent(in):: hice
-    !    real(rk)            :: foo, bar
-    !    integer             :: i
-    !    
-    !    foo = hice - z_s !z_s is for bottom layer depth (3cm)
-    !    bar = number_of_layers - 1
-    !    self(number_of_layers)%z = hice
-    !    self(bar)%z = foo
-    !    foo = foo / bar
-    !    
-    !    do i = (bar - 1), 1, -1
-    !        self(i)%z = self(i+1)%z - foo
-    !    end do
-    !    
-    !    do i = number_of_layers, 2, -1
-    !        self(i)%dz = self(i)%z - self(i-1)%z
-    !    end do
-    !    self(1)%dz = foo
-    !    
-    !end subroutine do_grid
-    !
-    !subroutine do_par(self, io, snow_thick)
-    !!io in Watts, to calculate it in micromoles photons per m2*s, [w] = 4.6*[micromole photons]
-    !    
-    !    implicit none
-    !    class(ice_layer), dimension(:):: self
-    !    real(rk), intent(in)    :: snow_thick
-    !    real(rk), intent(inout) :: io
-    !    real(rk)                :: io_e             !io in micromoles
-    !    real(rk)                :: par_alb, par_scat
-    !    real(rk), parameter     :: alb_ice = 0.744  !ice albedo
-    !    real(rk), parameter     :: alb_snow = 0.9   !snow albedo
-    !    real(rk), parameter     :: k_ice = 0.930    !extinction coeff. for ice m-1
-    !    real(rk), parameter     :: k_snow = 4.3     !extinction coeff. for snow m-1
-    !    real(rk), parameter     :: io_ice = 0.97    !fraction of rad transmitted through ice
-    !    
-    !    io_e = io / 4.6
-    !    if (snow_thick <= 0.005) then !albedo influence
-    !        par_alb = io * (1. - alb_ice)
-    !    else
-    !        par_alb = io * (1. - alb_snow) * exp(-k_snow * snow_thick)
-    !    end if
-    !    
-    !    par_scat = par_alb * io_ice !after scattered surface of ice
-    !    self%par_z = par_scat * exp(-k_ice * self%z)
-    !    io = 4.6 * self(number_of_layers)%par_z
-    !    
-    !end subroutine do_par
-    !
-    !subroutine do_bulk_temperature(self, air_temp, water_temp, ice_thickness)
-    !![C]
-    !
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !real(rk), intent(in):: air_temp, water_temp, ice_thickness
-    !integer:: i
-    !
-    !self%bulk_temperature = air_temp + ((water_temp - air_temp) * self%z) / ice_thickness
-    !do i = 1, number_of_layers
-    !    if (self(i)%bulk_temperature > -0.2) self(i)%bulk_temperature = -0.2
-    !end do
-    !
-    !end subroutine do_bulk_temperature
-    !
-    !subroutine do_bulk_salinity(self, ice_thickness, water_sal)
-    !!bulk salinity through ice [ppt]
-    !
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !real(rk), intent(in):: ice_thickness
-    !real(rk), intent(in):: water_sal
-    !integer:: i
-    !real(rk):: foo
-    !real(rk):: z_p
-    !
-    !foo = 0.
-    !do i = 1, number_of_layers
-    !    foo = foo + self(i)%dz
-    !    z_p = foo / ice_thickness
-    !    self(i)%bulk_salinity = 19.539 * (z_p**(2)) - 19.93 * z_p + 8.913
-    !end do
-    !self(number_of_layers)%bulk_salinity = water_sal
-    !
-    !end subroutine do_bulk_salinity
-    !
-    !subroutine do_brine_salinity(self)
-    !!brine salinity through ice in [ppt]
-    !
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !integer:: i
-    !
-    !do i = 1, number_of_layers
-    !    if (self(i)%bulk_temperature < 0 .and. self(i)%bulk_temperature >=  -22.9) then
-    !        self(i)%brine_salinity = -3.9921 + (-22.700   * self(i)%bulk_temperature) +&
-    !                                           (-1.0015   * self(i)%bulk_temperature**2) +&
-    !                                           (-0.019956 * self(i)%bulk_temperature**3)
-    !    else if (self(i)%bulk_temperature < -22.9 .and. self(i)%bulk_temperature >=  -44) then
-    !        self(i)%brine_salinity = 206.24 + (-1.8907    * self(i)%bulk_temperature) +&
-    !                                          (-0.060868  * self(i)%bulk_temperature**2) +&
-    !                                          (-0.0010247 * self(i)%bulk_temperature**3)
-    !    else if (self(i)%bulk_temperature < -44) then
-    !        self(i)%brine_salinity = -4442.1 + (-277.86  * self(i)%bulk_temperature) +&
-    !                                           (-5.501   * self(i)%bulk_temperature**2) +&
-    !                                           (-0.03669 * self(i)%bulk_temperature**3)
-    !    end if
-    !end do
-    !
-    !self(number_of_layers)%brine_salinity = self(number_of_layers)%bulk_salinity
-    !
-    !end subroutine do_brine_salinity
-    !
-    !subroutine do_brine_density(self)
-    !!brine density through ice [g*m-3]
-    !
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !real(rk):: c ![g*cm-1*ppt-1]
-    !
-    !c = 8e-4
-    !self%brine_density = (1. + c*self%brine_salinity)*1e6
-    !
-    !end subroutine do_brine_density
-    !
-    !subroutine do_bulk_density(self)
-    !!bulk density through ice [g*m-3]
-    !
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !real(rk):: dens_pure !density of pure ice
-    !integer:: i
-    !real(rk):: foo
-    !
-    !dens_pure = 912000. ![g*m-3]
-    !
-    !do i = 1, number_of_layers
-    !    foo = self(i)%brine_salinity
-    !    if (foo < 2.) foo = 2.! function has spikes below x=1
-    !    self(i)%bulk_density = dens_pure * self(i)%brine_density * foo /&
-    !    (self(i)%brine_density * foo - self(i)%bulk_salinity *&
-    !    (self(i)%brine_density - dens_pure))
-    !end do
-    !
-    !end subroutine do_bulk_density
-    !
-    !subroutine do_brine_relative_volume(self)
-    !!at the bottom layer it assumed equal to 0.5
-    !
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !integer:: i
-    !real(rk):: foo
-    !
-    !do i = 1, number_of_layers - 1
-    !    foo = self(i)%brine_salinity
-    !    if (foo < 10.) foo = 10.!to fix above 1 values
-    !    self(i)%brine_relative_volume = (self(i)%bulk_density * self(i)%bulk_salinity) /&
-    !                                 (self(i)%brine_density  * foo)
-    !end do
-    !self(number_of_layers)%brine_relative_volume = 0.5
-    !
-    !end subroutine do_brine_relative_volume
+    subroutine do_grid(self, hice)
+    !it makes grid, bottom layer is on lower edge of ice and equals 3 cm
+    !other layers depth = ice_thickness  - 3 cm / number of layers - 1
+        
+        implicit none
+        class(ice_layer):: self
+        real(rk), intent(in):: hice
+        real(rk)            :: foo, bar
+        integer             :: i
+        
+        foo = hice - z_s !z_s is for bottom layer depth (3cm)
+        bar = number_of_layers - 1
+        self(number_of_layers)%z = hice
+        self(bar)%z = foo
+        foo = foo / bar
+        
+        do i = (bar - 1), 1, -1
+            self(i)%z = self(i+1)%z - foo
+        end do
+        
+        do i = number_of_layers, 2, -1
+            self(i)%dz = self(i)%z - self(i-1)%z
+        end do
+        self(1)%dz = foo
+        
+    end subroutine do_grid
+    
+    subroutine do_par(self, io, snow_thick)
+    !io in Watts, to calculate it in micromoles photons per m2*s, [w] = 4.6*[micromole photons]
+        
+        implicit none
+        class(ice_layer):: self
+        real(rk), intent(in)    :: snow_thick
+        real(rk), intent(inout) :: io
+        real(rk)                :: io_e             !io in micromoles
+        real(rk)                :: par_alb, par_scat
+        real(rk), parameter     :: alb_ice = 0.744  !ice albedo
+        real(rk), parameter     :: alb_snow = 0.9   !snow albedo
+        real(rk), parameter     :: k_ice = 0.930    !extinction coeff. for ice m-1
+        real(rk), parameter     :: k_snow = 4.3     !extinction coeff. for snow m-1
+        real(rk), parameter     :: io_ice = 0.97    !fraction of rad transmitted through ice
+        
+        io_e = io / 4.6
+        if (snow_thick <= 0.005) then !albedo influence
+            par_alb = io * (1. - alb_ice)
+        else
+            par_alb = io * (1. - alb_snow) * exp(-k_snow * snow_thick)
+        end if
+        
+        par_scat = par_alb * io_ice !after scattered surface of ice
+        self%par_z = par_scat * exp(-k_ice * self%z)
+        io = 4.6 * self(number_of_layers)%par_z
+        
+    end subroutine do_par
+    
+    subroutine do_bulk_temperature(self, air_temp, water_temp, ice_thickness)
+    ![C]
+    
+    implicit none
+    class(ice_layer):: self
+    real(rk), intent(in):: air_temp, water_temp, ice_thickness
+    integer:: i
+    
+    self%bulk_temperature = air_temp + ((water_temp - air_temp) * self%z) / ice_thickness
+    do i = 1, number_of_layers
+        if (self(i)%bulk_temperature > -0.2) self(i)%bulk_temperature = -0.2
+    end do
+    
+    end subroutine do_bulk_temperature
+    
+    subroutine do_bulk_salinity(self, ice_thickness, water_sal)
+    !bulk salinity through ice [ppt]
+    
+    implicit none
+    class(ice_layer):: self
+    real(rk), intent(in):: ice_thickness
+    real(rk), intent(in):: water_sal
+    integer:: i
+    real(rk):: foo
+    real(rk):: z_p
+    
+    foo = 0.
+    do i = 1, number_of_layers
+        foo = foo + self(i)%dz
+        z_p = foo / ice_thickness
+        self(i)%bulk_salinity = 19.539 * (z_p**(2)) - 19.93 * z_p + 8.913
+    end do
+    self(number_of_layers)%bulk_salinity = water_sal
+    
+    end subroutine do_bulk_salinity
+    
+    subroutine do_brine_salinity(self)
+    !brine salinity through ice in [ppt]
+    
+    implicit none
+    class(ice_layer):: self
+    integer:: i
+    
+    do i = 1, number_of_layers
+        if (self(i)%bulk_temperature < 0 .and. self(i)%bulk_temperature >=  -22.9) then
+            self(i)%brine_salinity = -3.9921 + (-22.700   * self(i)%bulk_temperature) +&
+                                               (-1.0015   * self(i)%bulk_temperature**2) +&
+                                               (-0.019956 * self(i)%bulk_temperature**3)
+        else if (self(i)%bulk_temperature < -22.9 .and. self(i)%bulk_temperature >=  -44) then
+            self(i)%brine_salinity = 206.24 + (-1.8907    * self(i)%bulk_temperature) +&
+                                              (-0.060868  * self(i)%bulk_temperature**2) +&
+                                              (-0.0010247 * self(i)%bulk_temperature**3)
+        else if (self(i)%bulk_temperature < -44) then
+            self(i)%brine_salinity = -4442.1 + (-277.86  * self(i)%bulk_temperature) +&
+                                               (-5.501   * self(i)%bulk_temperature**2) +&
+                                               (-0.03669 * self(i)%bulk_temperature**3)
+        end if
+    end do
+    
+    self(number_of_layers)%brine_salinity = self(number_of_layers)%bulk_salinity
+    
+    end subroutine do_brine_salinity
+    
+    subroutine do_brine_density(self)
+    !brine density through ice [g*m-3]
+    
+    implicit none
+    class(ice_layer):: self
+    real(rk):: c ![g*cm-1*ppt-1]
+    
+    c = 8e-4
+    self%brine_density = (1. + c*self%brine_salinity)*1e6
+    
+    end subroutine do_brine_density
+    
+    subroutine do_bulk_density(self)
+    !bulk density through ice [g*m-3]
+    
+    implicit none
+    class(ice_layer):: self
+    real(rk):: dens_pure !density of pure ice
+    integer:: i
+    real(rk):: foo
+    
+    dens_pure = 912000. ![g*m-3]
+    
+    do i = 1, number_of_layers
+        foo = self(i)%brine_salinity
+        if (foo < 2.) foo = 2.! function has spikes below x=1
+        self(i)%bulk_density = dens_pure * self(i)%brine_density * foo /&
+        (self(i)%brine_density * foo - self(i)%bulk_salinity *&
+        (self(i)%brine_density - dens_pure))
+    end do
+    
+    end subroutine do_bulk_density
+    
+    subroutine do_brine_relative_volume(self)
+    !at the bottom layer it assumed equal to 0.5
+    
+    implicit none
+    class(ice_layer):: self
+    integer:: i
+    real(rk):: foo
+    
+    do i = 1, number_of_layers - 1
+        foo = self(i)%brine_salinity
+        if (foo < 10.) foo = 10.!to fix above 1 values
+        self(i)%brine_relative_volume = (self(i)%bulk_density * self(i)%bulk_salinity) /&
+                                     (self(i)%brine_density  * foo)
+    end do
+    self(number_of_layers)%brine_relative_volume = 0.5
+    
+    end subroutine do_brine_relative_volume
     !
     !subroutine do_nitrogen(self, nh4, no2, no3)
     !!calculate fluxes of nitrogen in brine channels

@@ -17,25 +17,32 @@
     implicit none
     private
     public init_brom_transport, do_brom_transport, clear_brom_transport
-    !FABM model with all data and procedures related to biogeochemistry
-    type (type_model)                                               :: model
-    integer                                                         :: lev_max, par_max, year, number_of_layers
-    integer                                                         :: boundary_bbl_sediments, boundary_water_bbl
-    !grids for depth(z), gradients of depth(dz), bioturbations coefficients, hice -  "time-averaged average ice thickness in cell"
-    real(rk), pointer, dimension(:)                                 :: z, dz, kz_bio, hice
-    real(rk), pointer, dimension(:)                                 :: ice_area, heat_flux, snow_thick, t_ice
+
+    !FABM model
+    type (type_model) :: model
+    !number of levels in water, year
+    integer           :: lev_max, par_max, year
+    !number of ice layers
+    integer           :: number_of_layers
+    !some boundaries
+    integer           :: boundary_bbl_sediments, boundary_water_bbl
+    !names of parameters
+    character(len = attribute_length), allocatable, dimension(:) :: par_name
+    !grid parameters
+    real(rk), pointer, dimension(:) :: z, dz, kz_bio 
+    !ice parameters
+    real(rk), pointer, dimension(:) :: hice, ice_area, heat_flux, snow_thick, t_ice
     !grids for temperature, salinity, coefficient of turbulence(kz2)
-    real(rk), pointer, dimension(:, :)                              :: tem2, sal2, kz2
-    real(rk), allocatable, dimension(:, :)                          :: cc, dcc, wbio !cc - main array
-    real(rk), allocatable, dimension(:)                             :: bound_up, bound_low
-    logical, allocatable, dimension(:)                              :: use_bound_up, use_bound_low
-    character(len = attribute_length), allocatable, dimension(:)    :: par_name
-    real(rk), allocatable, dimension(:)                             :: iz, density, pressure
-    real(rk), allocatable, dimension(:)                             :: kz_tot
-    real(rk)                                                        :: dt       !time step in [day/iteration]
-    real(rk)                                                        :: io, wind_speed, pco2_atm, &
-                                                                       width_bbl, resolution_bbl, width_bioturbation, &
-                                                                       resolution_bioturbation, width_sediments, resolution_sediments
+    real(rk), pointer, dimension(:, :) :: tem2, sal2, kz2
+    real(rk), allocatable, dimension(:, :) :: cc, dcc, wbio
+    real(rk), allocatable, dimension(:) :: bound_up, bound_low
+    logical, allocatable, dimension(:) :: use_bound_up, use_bound_low
+    real(rk), allocatable, dimension(:) :: iz, density, pressure
+    real(rk), allocatable, dimension(:) :: kz_tot
+    real(rk) :: dt       !time step in [day/iteration]
+    real(rk) :: io, wind_speed, pco2_atm,
+width_bbl, resolution_bbl, width_bioturbation, 
+resolution_bioturbation, width_sediments, resolution_sediments
     type(ice_layer), pointer, dimension(:)  :: ice_l=>null()
     type(netcdf_algae_o), pointer           :: netcdf_ice=>null()
     type(netcdf_o), pointer                 :: netcdf_pelagic=>null()
@@ -63,9 +70,7 @@
     year                    = get_brom_par("year")
     dt                      = get_brom_par("dt")
     !default environment in absence of actual data (could be retrievd from GOTM output)
-    density                 = get_brom_par("density")   !kg m-3
     wind_speed              = get_brom_par("wind_speed")!m s-1
-    pressure                = z + 10                    !dbar, roughly equivalent to depth in m+ 1 bar atmospheric pressure
     pco2_atm                = get_brom_par("pco2_atm")  !ppm
     !number of layers in ice
     number_of_layers        = get_brom_par("number_of_layers")
@@ -98,7 +103,9 @@
     !auxiliary variables
     allocate(iz(lev_max))
     allocate(density(lev_max))
+    density                 = get_brom_par("density")   !kg m-3
     allocate(pressure(lev_max))  
+    pressure                = z + 10                    !dbar, roughly equivalent to depth in m+ 1 bar atmospheric pressure
     
     ! Send pointers to state variable data to FABM
     do i = 1, par_max
@@ -266,9 +273,8 @@
         end if
         
         !ice algae processes calculated once per day is here, also recalculates io for bottom of ice layer
-        !call ice_l%do_slow_ice(t_ice(julianday), tem2(1, julianday), sal2(1, julianday), &
-        !     hice(julianday), io, snow_thick(julianday), julianday, lat_light)
-        
+        call ice_l%do_slow_ice(t_ice(julianday), tem2(1, julianday), sal2(1, julianday), &
+                               hice(julianday), io, snow_thick(julianday), julianday, lat_light)
         !compute irradiance at depth
         do k = 1, lev_max
             !we check that we are not in the sediments
