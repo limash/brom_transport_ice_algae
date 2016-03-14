@@ -29,11 +29,12 @@ module brom_transport
     real(rk) :: io !io is surface irradiance
     real(rk) :: wind_speed
     real(rk) :: pco2_atm
+    !parameters for grid
     real(rk) :: width_bbl, resolution_bbl 
     real(rk) :: width_bioturbation, resolution_bioturbation
     real(rk) :: width_sediments, resolution_sediments
 
-    !variables for bound conditions
+    !logical arrays for bound conditions
     logical, allocatable, dimension(:) :: use_bound_up, use_bound_low
     !grid variables
     real(rk), allocatable, dimension(:) :: z, dz
@@ -41,8 +42,9 @@ module brom_transport
     real(rk), allocatable, dimension(:) :: kz_bio
     !ice variables
     real(rk), allocatable, dimension(:) :: hice, ice_area, heat_flux, snow_thick, t_ice
-    !and more variables
+    !arrays for bouns conditions
     real(rk), allocatable, dimension(:) :: bound_up, bound_low
+    !and more variables
     real(rk), allocatable, dimension(:) :: density, pressure
     !irradiance in water column
     real(rk), allocatable, dimension(:) :: iz
@@ -69,7 +71,6 @@ contains
         !- get_brom_par from brom.yaml was added
         !- io with fabm linking was deleted
         
-        implicit none
         integer                 :: i
         
         !reading brom.yaml: module io_ascii
@@ -88,7 +89,8 @@ contains
         pco2_atm                = get_brom_par("pco2_atm")
         number_of_layers        = get_brom_par("number_of_layers")
         
-        !input_netcdf, kz2 - AKs, hice -  "time-averaged average ice thickness in cell", also generates grid according to input data
+        !input_netcdf, kz2 - AKs
+        !hice -  "time-averaged average ice thickness in cell", also generates grid according to input data
         call input_netcdf('KaraSea.nc', z, dz, kz_bio, lev_max, tem2, sal2, kz2, hice, boundary_bbl_sediments, &
             boundary_water_bbl, width_bbl, resolution_bbl, width_bioturbation, resolution_bioturbation, &
             width_sediments, resolution_sediments, year, ice_area, heat_flux, snow_thick, t_ice)
@@ -170,8 +172,6 @@ contains
         !- 12_2015 caco3 on low boundary was added
         
         use calculate, only: calculate_phys, calculate_sed
-        
-        implicit none
         
         integer     :: i, id, ip, k, julianday, idt
         real(rk)    :: lat_light
@@ -287,8 +287,11 @@ contains
             end if
             
             !ice algae processes calculated once per day is here, also recalculates io for bottom of ice layer
-            call ice_l%do_slow_ice(t_ice(julianday), tem2(1, julianday), sal2(1, julianday), &
+            do k = 1, number_of_layers
+                call ice_l(k)%do_slow_ice(k, t_ice(julianday), tem2(1, julianday), sal2(1, julianday), &
                                    hice(julianday), io, snow_thick(julianday), julianday, lat_light)
+            end do
+
             !compute irradiance at depth
             do k = 1, lev_max
                 !we check that we are not in the sediments
@@ -380,6 +383,8 @@ contains
     deallocate(z)
     deallocate(dz)
     deallocate(kz_bio)
+    !allocated in ice_algae
+    deallocate(ice_l)
     
     write (*,'(a)') "finished"
     

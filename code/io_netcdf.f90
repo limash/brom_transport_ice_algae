@@ -74,9 +74,9 @@ real(rk), intent(in) :: width_bbl, resolution_bbl, width_bioturbation, resolutio
 
 ! This is the name of the data file we will read.
 character (len = *), intent(in)                         :: file_name
-real(rk), dimension (:, :), pointer, intent(out)        :: t, s, AKs
-real(rk), dimension (:), pointer, intent(out)           :: z, dz, kz_bio, hice
-real(rk), dimension (:), pointer, intent(out)           :: ice_area, heat_flux, snow_thick, t_ice
+real(rk), dimension (:, :), allocatable, intent(out)    :: t, s, AKs
+real(rk), dimension (:), allocatable, intent(out)       :: z, dz, kz_bio, hice
+real(rk), dimension (:), allocatable, intent(out)       :: ice_area, heat_flux, snow_thick, t_ice
 integer, intent(out)                                    :: lev_max, boundary_bbl_sediments, boundary_water_bbl
 integer, intent(in)                                     :: year
 
