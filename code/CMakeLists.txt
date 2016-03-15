@@ -42,7 +42,7 @@ add_subdirectory(${FABM_BASE}/src fabm)
 set(FABM_LIBRARIES fabm)
 set(FABM_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/fabm/modules)
 
-add_executable(brom
+add_executable(brom WIN32
                calculate.f90
                io_netcdf.f90
                main.f90
