@@ -130,6 +130,17 @@
 
         constructor_ice_layer%is_bottom = .false.
         constructor_ice_layer(number_of_layers)%is_bottom = .true.
+
+        constructor_ice_layer%z = 0.
+        constructor_ice_layer%dz = 0.
+        constructor_ice_layer%par_z = 0.
+        constructor_ice_layer%bulk_temperature = 0.
+        constructor_ice_layer%bulk_salinity = 0.
+        constructor_ice_layer%bulk_density = 0.
+        constructor_ice_layer%brine_temperature = 0.
+        constructor_ice_layer%brine_salinity = 0.
+        constructor_ice_layer%brine_density = 0.
+
         constructor_ice_layer%a_carbon = 0.
         constructor_ice_layer%a_nitrogen = 0.
         constructor_ice_layer%a_phosphorus = 0.
@@ -148,6 +159,13 @@
         constructor_ice_layer%d_no3 = 0.
         constructor_ice_layer%d_po4 = 0.
         
+        constructor_ice_layer%brine_relative_volume = 0.
+        
+        constructor_ice_layer%last_gpp = 0.
+        constructor_ice_layer%last_f_t = 0.
+        constructor_ice_layer%last_v_ammonium = 0.
+        constructor_ice_layer%last_mort = 0.
+
         prev_ice_thickness = 0.5 !only for first circle, 31 dec - 0.5m
     
     end function constructor_ice_layer
