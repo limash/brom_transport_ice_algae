@@ -172,7 +172,7 @@
     
     subroutine do_slow_ice(self, lvl, air_temp, water_temp, water_sal, ice_thickness, &
                            io, snow_thick, julian_day, lat)
-        !subroutine for variables should be calculated once per day
+    !subroutine for variables should be calculated once per day
         
         class(ice_layer):: self
         integer,  intent(in) :: lvl
@@ -237,45 +237,45 @@
         prev_ice_thickness = ice_thickness
         
     end subroutine do_slow_ice
-    !
-    !subroutine do_ice(self, nh4, no2, no3, po4, dt, ice_thickness)
-    !
-    !    implicit none
-    !    class(ice_layer), dimension(:):: self
-    !    real(rk), intent(in):: nh4 !from upper water layer
-    !    real(rk), intent(in):: no2 !from upper water layer
-    !    real(rk), intent(in):: no3 !from upper water layer
-    !    real(rk), intent(in):: po4 !from upper water layer
-    !    real(rk), intent(in):: dt
-    !    real(rk), intent(in):: ice_thickness
-    !    
-    !    if (ice_thickness < 0.2) then
-    !        return
-    !    end if
-    !    
-    !    !calculate fluxes of nutrients in ice
-    !    call self%do_nitrogen(nh4, no2, no3)
-    !    self%nh4 = self%nh4 + self%d_nh4 * dt
-    !    self%no2 = self%no2 + self%d_no2 * dt
-    !    self%no3 = self%no3 + self%d_no3 * dt
-    !    self(1)%nh4 = self(2)%nh4
-    !    self(1)%no2 = self(2)%no2
-    !    self(1)%no3 = self(2)%no3
-    !    self(1)%po4 = self(2)%po4
-    !    
-    !    call self%do_phosphorus(po4)
-    !    self%po4 = self%po4 + self%d_po4 * dt
-    !    self(1)%po4 = self(2)%po4
-    !    
-    !    !processes rates are per hour inside procedure
-    !    call self%do_a_carbon()
-    !    self%a_carbon = self%a_carbon + self%d_a_carbon * dt * 24.
-    !    call self%do_a_nitrogen()
-    !    self%a_nitrogen = self%a_nitrogen + self%d_a_nitrogen * dt * 24.
-    !    call self%do_a_phosphorus()
-    !    self%a_phosphorus = self%a_phosphorus + self%d_a_phosphorus * dt * 24.
-    !    
-    !end subroutine do_ice
+    
+    subroutine do_ice(self, lvl, nh4, no2, no3, po4, dt, ice_thickness)
+    
+        class(ice_layer):: self
+        integer,  intent(in):: lvl
+        real(rk), intent(in):: nh4 !from upper water layer
+        real(rk), intent(in):: no2 !from upper water layer
+        real(rk), intent(in):: no3 !from upper water layer
+        real(rk), intent(in):: po4 !from upper water layer
+        real(rk), intent(in):: dt
+        real(rk), intent(in):: ice_thickness
+        
+        if (ice_thickness < 0.2) then
+            return
+        end if
+        
+        !calculate fluxes of nutrients in ice
+        call self%do_nitrogen(lvl, nh4, no2, no3)
+        self%nh4 = self%nh4 + self%d_nh4 * dt
+        self%no2 = self%no2 + self%d_no2 * dt
+        self%no3 = self%no3 + self%d_no3 * dt
+        self(1)%nh4 = self(2)%nh4
+        self(1)%no2 = self(2)%no2
+        self(1)%no3 = self(2)%no3
+        self(1)%po4 = self(2)%po4
+        
+        call self%do_phosphorus(po4)
+        self%po4 = self%po4 + self%d_po4 * dt
+        self(1)%po4 = self(2)%po4
+        
+        !processes rates are per hour inside procedure
+        call self%do_a_carbon()
+        self%a_carbon = self%a_carbon + self%d_a_carbon * dt * 24.
+        call self%do_a_nitrogen()
+        self%a_nitrogen = self%a_nitrogen + self%d_a_nitrogen * dt * 24.
+        call self%do_a_phosphorus()
+        self%a_phosphorus = self%a_phosphorus + self%d_a_phosphorus * dt * 24.
+        
+    end subroutine do_ice
     
     !subroutine get_algae(self, z, par_z, bulk_temperature, bulk_salinity, &
     !    bulk_density, brine_temperature, brine_salinity, brine_density, &
@@ -462,42 +462,48 @@
         end if
     
     end subroutine do_brine_relative_volume
-    !
-    !subroutine do_nitrogen(self, nh4, no2, no3)
-    !!calculate fluxes of nitrogen in brine channels
-    !!per day
-    !
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !real(rk), intent(in):: nh4 !from upper water layer
-    !real(rk), intent(in):: no2 !from upper water layer
-    !real(rk), intent(in):: no3 !from upper water layer
-    !integer:: i
-    !
-    !!calculates d_nh4 for bottom layer
-    !call self%do_bottom(nh4, self(number_of_layers)%d_nh4, self(number_of_layers)%a_nitrogen, &
-    !                    self%v_ammonium(number_of_layers), self%release_n(number_of_layers), &
-    !                    self%nh4)
-    !call self%do_bottom(no2, self(number_of_layers)%d_no2, self(number_of_layers)%a_nitrogen, &
-    !                    (self%v_nina(number_of_layers) / 2.), self%release_n(number_of_layers), &
-    !                    self%no2)
-    !call self%do_bottom(no3, self(number_of_layers)%d_no3, self(number_of_layers)%a_nitrogen, &
-    !                    (self%v_nina(number_of_layers) / 2.), self%release_n(number_of_layers), &
-    !                    self%no3)
-    !do i = number_of_layers - 1, 2, -1
-    !    call self%do_congelation(self(i)%d_nh4, self(i)%a_nitrogen, &
-    !                    self%v_ammonium(i), self%release_n(i), i, &
-    !                    self%nh4)
-    !    call self%do_congelation(self(i)%d_no2, self(i)%a_nitrogen, &
-    !                    (self%v_nina(number_of_layers) / 2.), self%release_n(i), i, &
-    !                    self%no2)
-    !    call self%do_congelation(self(i)%d_no3, self(i)%a_nitrogen, &
-    !                    (self%v_nina(number_of_layers) / 2.), self%release_n(i), i, &
-    !                    self%no3)
-    !end do
-    !
-    !end subroutine do_nitrogen
-    !
+    
+    subroutine do_nitrogen(self, lvl, nh4, no2, no3)
+    !calculate fluxes of nitrogen in brine channels
+    !per day
+    
+        class(ice_layer):: self
+        integer,  intent(in):: lvl
+        real(rk), intent(in):: nh4 !from upper water layer
+        real(rk), intent(in):: no2 !from upper water layer
+        real(rk), intent(in):: no3 !from upper water layer
+        integer:: i
+        real(rk):: v_ammonium, v_nina, release_n
+
+        v_ammonium = self%v_ammonium()
+        v_nina = self%v_nina()
+        release_n = self%release_n()
+        
+        !calculates nitrogen for bottom layer
+        if (lvl == number_of_layers) then
+            call self%do_bottom(nh4, self%d_nh4, self%a_nitrogen, &
+                                v_ammonium, release_n, &
+                                self%nh4)
+            call self%do_bottom(no2, self%d_no2, self%a_nitrogen, &
+                                (v_nina / 2.), release_n, &
+                                self%no2)
+            call self%do_bottom(no3, self%d_no3, self%a_nitrogen, &
+                                (v_nina / 2.), release_n, &
+                                self%no3)
+        else
+            call self%do_congelation(self(i)%d_nh4, self(i)%a_nitrogen, &
+                            self%v_ammonium(i), self%release_n(i), i, &
+                            self%nh4)
+            call self%do_congelation(self(i)%d_no2, self(i)%a_nitrogen, &
+                            (self%v_nina / 2.), self%release_n(i), i, &
+                            self%no2)
+            call self%do_congelation(self(i)%d_no3, self(i)%a_nitrogen, &
+                            (self%v_nina / 2.), self%release_n(i), i, &
+                            self%no3)
+        end if
+    
+    end subroutine do_nitrogen
+    
     !subroutine do_phosphorus(self, po4)
     !!calculate fluxes of phosphorus in brine channels
     !!per day
@@ -519,25 +525,24 @@
     !
     !end subroutine do_phosphorus
     !
-    !subroutine do_bottom(self, nut_in_water, d_nut, a_nut, uptake, release, nut_brine)
-    !!calculate bottom fluxes
-    !!per day
-    !
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !real(rk), dimension(:)        :: nut_brine
-    !real(rk), intent(in) :: nut_in_water, uptake, release
-    !real(rk), intent(in) :: a_nut !in algae nutrients
-    !real(rk), intent(out):: d_nut !increment of calculated brine nutrient
-    !
-    !d_nut = self%brine_flux_z(number_of_layers, nut_brine, nut_in_water) +&
-    !        self%brine_flux_s(number_of_layers, nut_brine, nut_in_water) +&
-    !        self%diffusion_flux_s(number_of_layers, nut_brine, nut_in_water) +&
-    !        self%congelation_flux_s(number_of_layers, nut_brine, nut_in_water) -&
-    !        a_nut * (uptake - release)
-    !
-    !end subroutine do_bottom
-    !
+    subroutine do_bottom(self, nut_in_water, d_nut, a_nut, uptake, release, nut_brine)
+    !calculate bottom fluxes
+    !per day
+    
+    class(ice_layer):: self
+    real(rk):: nut_brine
+    real(rk), intent(in) :: nut_in_water, uptake, release
+    real(rk), intent(in) :: a_nut !in algae nutrients
+    real(rk), intent(out):: d_nut !increment of calculated brine nutrient
+    
+    d_nut = self%brine_flux_z(number_of_layers, nut_brine, nut_in_water) +&
+            self%brine_flux_s(number_of_layers, nut_brine, nut_in_water) +&
+            self%diffusion_flux_s(number_of_layers, nut_brine, nut_in_water) +&
+            self%congelation_flux_s(number_of_layers, nut_brine, nut_in_water) -&
+            a_nut * (uptake - release)
+    
+    end subroutine do_bottom
+    
     !subroutine do_congelation(self, d_nut, a_nut, uptake, release, layer, nut_brine)
     !!brine concentrarion changes
     !!per day
@@ -555,31 +560,31 @@
     !
     !end subroutine do_congelation
     !
-    !function brine_flux_z(self, layer, nut_brine, nut_in_water)
-    !!brine flux for all layers - per day
-    !
-    !implicit none
-    !class(ice_layer), dimension(:)  :: self
-    !real(rk), dimension(:)          :: nut_brine
-    !integer                         :: layer
-    !real(rk)                        :: brine_flux_z
-    !real(rk), intent(in), optional  :: nut_in_water !for bottom layer
-    !real(rk)                        :: gravity_drainage = 1.e-8! [m * s-1]
-    !real(rk)                        :: z_conv = 1. !vertical distance over which sea ice is influenced by gravity drainage
-    !
-    !if (present(nut_in_water)) then
-    !    brine_flux_z = self(layer)%brine_relative_volume *&
-    !    gravity_drainage * z_conv *&
-    !    self%second_derivative(nut_brine(layer - 1), nut_brine(layer), nut_in_water, self(layer - 1)%dz, self(layer)%dz)
-    !else
-    !    brine_flux_z = self(layer)%brine_relative_volume *&
-    !    gravity_drainage * z_conv *&
-    !    self%second_derivative(nut_brine(layer - 1), nut_brine(layer), nut_brine(layer + 1), self(layer - 1)%dz, self(layer)%dz)
-    !end if
-    !
-    !brine_flux_z = 86400. * brine_flux_z !convert per second to per day
-    !
-    !end function brine_flux_z
+    function brine_flux_z(self, layer, nut_brine, nut_in_water)
+    !brine flux for all layers - per day
+    
+    implicit none
+    class(ice_layer), dimension(:)  :: self
+    real(rk), dimension(:)          :: nut_brine
+    integer                         :: layer
+    real(rk)                        :: brine_flux_z
+    real(rk), intent(in), optional  :: nut_in_water !for bottom layer
+    real(rk)                        :: gravity_drainage = 1.e-8! [m * s-1]
+    real(rk)                        :: z_conv = 1. !vertical distance over which sea ice is influenced by gravity drainage
+    
+    if (present(nut_in_water)) then
+        brine_flux_z = self(layer)%brine_relative_volume *&
+        gravity_drainage * z_conv *&
+        self%second_derivative(nut_brine(layer - 1), nut_brine(layer), nut_in_water, self(layer - 1)%dz, self(layer)%dz)
+    else
+        brine_flux_z = self(layer)%brine_relative_volume *&
+        gravity_drainage * z_conv *&
+        self%second_derivative(nut_brine(layer - 1), nut_brine(layer), nut_brine(layer + 1), self(layer - 1)%dz, self(layer)%dz)
+    end if
+    
+    brine_flux_z = 86400. * brine_flux_z !convert per second to per day
+    
+    end function brine_flux_z
     !
     !function brine_flux_s(self, layer, nut_brine, nut_in_water)
     !!brine flux for bottom - per day

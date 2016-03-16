@@ -315,7 +315,9 @@ contains
                 cc = max(0.00000000001, (cc + dcc))
                 
                 !ice algae
-                !call ice_l%do_ice(cc(1, i_NH4), cc(1, i_NO2), cc(1, i_NO3), cc(1, i_PO4), dt, hice(julianday))
+                do k = 1, number_of_layers
+                    call ice_l(k)%do_ice(k, cc(1, i_NH4), cc(1, i_NO2), cc(1, i_NO3), cc(1, i_PO4), dt, hice(julianday))
+                end do
                 
                 do  ip = 1, freq_az
                     !compute surface fluxes in FABM
