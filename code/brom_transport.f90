@@ -159,9 +159,9 @@ contains
         netcdf_ice => netcdf_algae_o()
         netcdf_pelagic => netcdf_o()
         netcdf_bottom  => netcdf_o()
-        call netcdf_ice%init_netcdf_algae("output_a.nc", 1, number_of_layers)
-        call netcdf_pelagic%init_netcdf("output_p.nc", 1, boundary_water_bbl - 1, model)
-        call netcdf_bottom%init_netcdf("output_b.nc", boundary_water_bbl, lev_max, model)
+        call netcdf_ice%init_netcdf_algae("output_ice.nc", 1, number_of_layers)
+        call netcdf_pelagic%init_netcdf("output_pelagic.nc", 1, boundary_water_bbl - 1, model)
+        call netcdf_bottom%init_netcdf("output_bottom.nc", boundary_water_bbl, lev_max, model)
     
     end subroutine init_brom_transport
     
@@ -287,7 +287,7 @@ contains
             end if
             
             !ice algae processes calculated once per day is here, also recalculates io for bottom of ice layer
-            do k = 1, number_of_layers
+            do k = number_of_layers, 1 
                 call ice_l(k)%do_slow_ice(k, t_ice(julianday), tem2(1, julianday), sal2(1, julianday), &
                                    hice(julianday), io, snow_thick(julianday), julianday, lat_light)
             end do
@@ -315,7 +315,7 @@ contains
                 cc = max(0.00000000001, (cc + dcc))
                 
                 !ice algae
-                do k = 1, number_of_layers
+                do k = number_of_layers, 2 
                     call ice_l(k)%do_ice(k, cc(1, i_NH4), cc(1, i_NO2), cc(1, i_NO3), cc(1, i_PO4), dt, hice(julianday))
                 end do
                 
@@ -386,6 +386,7 @@ contains
     deallocate(dz)
     deallocate(kz_bio)
     !allocated in ice_algae
+    call icedeallocate()
     deallocate(ice_l)
     
     write (*,'(a)') "finished"

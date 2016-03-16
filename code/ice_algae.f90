@@ -1,4 +1,4 @@
-    module ice_algae_lib
+module ice_algae_lib
     
     !REVISION HISTORY:
     !Original author(s): Shamil Yakubov
@@ -18,23 +18,48 @@
     private
     
     integer :: number_of_layers
-    !length of the day
+
     real(rk):: day_length
     real(rk):: prev_ice_thickness
     real(rk):: ice_growth
-    real(rk):: z_s = 0.03 !bottom layer depth
+
+    real(rk):: z_s = 0.03 !bottom layer width
     real(rk):: p_b = 1.2 !maximum rate of photosynthesis (mg C mg Chl-1 h-1)
     real(rk):: chl_to_carbon = 30. !conversion factor (mg C mg Chl-1)
     real(rk):: carbon_to_oxy = 0.375 !conversion factor (mg C mg o2-1)
-    public  :: ice_layer
+    
+    !vertical distance over which sea ice is influenced by gravity drainage
+    real(rk):: z_conv = 1.        
+    real(rk):: gravity_drainage = 1.e-8! [m * s-1]
+    
+    real(rk):: k_wi = 1.e-5! [m2 s-1] diffusion coef. between bottom layer and sea water
+
+    real(rk):: v_max_n = 1.08! [1/day] maximal uptake rate of nitrogen
+    real(rk):: k_ammonium = 2.94! [microM N] half saturation constant for ammonium uptake
+    real(rk):: n_max = 0.53! [mg N * mg C-1]
+    real(rk):: n_min = 0.1! [mg N * mg C-1]
+    real(rk):: max_n_p = 291! max N/P in algae
+    real(rk):: k_nina = 30! [microM N] half saturation constant for no2 and no3 uptake
+
+    real(rk):: phos_min = 0.002! [mg P mg C-1] minimum phosphorus cell quota
+    real(rk):: phos_max = 0.08! [mg P mg C-1] maximum phosphorus cell quota
+    real(rk):: min_n_p = 4.! min N/P in algae
+    real(rk):: v_max_p = 1.08! [d-1] maximal uptake rate of po4
+    real(rk):: k_p = 2.! [microM P] half saturation constant for po4 uptake
+
+    real(rk), dimension(:):: nh4_m, no2_m, no3_m
+    real(rk), dimension(:):: po4_m
+    real(rk), dimension(:):: dz_m
+
+    public :: ice_layer
+    public :: icedeallocate
     
     type ice_layer
         private
         !is_bottom
         logical:: is_bottom
-        !depth of layers(z) and dz
+        !depth of layers(z)
         real(rk):: z
-        real(rk):: dz
         !photosynthetic active radiation
         real(rk):: par_z
         !ice bulk variables
@@ -65,14 +90,14 @@
         !volume of brine channels
         real(rk):: brine_relative_volume
         !some variables that will be used iteratively 
-        real(rk):: last_gpp
-        real(rk):: last_f_t
+        !real(rk):: last_gpp
+        !real(rk):: last_f_t
         real(rk):: last_v_ammonium
-        real(rk):: last_mort
+        !real(rk):: last_mort
     contains
         private
         procedure, public:: do_slow_ice
-        !procedure, public:: do_ice
+        procedure, public:: do_ice
         !procedure, public:: get_algae
         procedure:: do_grid
         procedure:: do_par
@@ -82,15 +107,15 @@
         procedure:: do_brine_density
         procedure:: do_bulk_density
         procedure:: do_brine_relative_volume
-        !procedure:: do_nitrogen
-        !procedure:: do_phosphorus
-        !procedure:: do_bottom
-        !procedure:: do_congelation
-        !procedure:: brine_flux_z
-        !procedure:: brine_flux_s
-        !procedure:: diffusion_flux_s
-        !procedure:: congelation_flux_s
-        !procedure:: second_derivative
+        procedure:: do_nitrogen
+        procedure:: do_phosphorus
+        procedure:: do_bottom
+        procedure:: do_congelation
+        procedure:: brine_flux_z
+        procedure:: brine_flux_s
+        procedure:: diffusion_flux_s
+        procedure:: congelation_flux_s
+        procedure:: second_derivative
         !procedure:: brine_release
         !procedure:: do_a_carbon
         !procedure:: gpp
@@ -98,7 +123,7 @@
         !procedure:: f_s
         !procedure:: f_t
         !procedure:: f_nut
-        !procedure:: n_cell
+        procedure:: n_cell
         !procedure:: p_cell
         !procedure:: resp
         !procedure:: exud
@@ -106,9 +131,9 @@
         !procedure:: melt
         !procedure:: do_a_nitrogen
         !procedure:: uptake_n
-        !procedure:: release_n
-        !procedure:: v_ammonium
-        !procedure:: v_nina
+        procedure:: release_n
+        procedure:: v_ammonium
+        procedure:: v_nina
         !procedure:: do_a_phosphorus
         !procedure:: uptake_p
         !procedure:: release_p
@@ -118,7 +143,7 @@
         procedure constructor_ice_layer
     end interface
     
-    contains
+contains
     
     function constructor_ice_layer(number_of_layers_in)
     
@@ -127,12 +152,21 @@
         
         number_of_layers = number_of_layers_in
         allocate(constructor_ice_layer(number_of_layers))
+        allocate(nh4_m(number_of_layers))
+        allocate(no2_m(number_of_layers))
+        allocate(no3_m(number_of_layers))
+        allocate(po4_m(number_of_layers))
+        allocate(dz_m(number_of_layers))
+        nh4_m = 0.
+        no2_m = 0.
+        no3_m = 0.
+        po4_m = 0.
+        dz_m = 0.
 
-        constructor_ice_layer%is_bottom = .false.
+        constructor_ice_layer(1:number_of_layers - 1)%is_bottom = .false.
         constructor_ice_layer(number_of_layers)%is_bottom = .true.
 
         constructor_ice_layer%z = 0.
-        constructor_ice_layer%dz = 0.
         constructor_ice_layer%par_z = 0.
         constructor_ice_layer%bulk_temperature = 0.
         constructor_ice_layer%bulk_salinity = 0.
@@ -161,14 +195,24 @@
         
         constructor_ice_layer%brine_relative_volume = 0.
         
-        constructor_ice_layer%last_gpp = 0.
-        constructor_ice_layer%last_f_t = 0.
+        !constructor_ice_layer%last_gpp = 0.
+        !constructor_ice_layer%last_f_t = 0.
         constructor_ice_layer%last_v_ammonium = 0.
-        constructor_ice_layer%last_mort = 0.
+        !constructor_ice_layer%last_mort = 0.
 
         prev_ice_thickness = 0.5 !only for first circle, 31 dec - 0.5m
     
     end function constructor_ice_layer
+
+    subroutine icedeallocate()
+
+        deallocate(nh4_m)
+        deallocate(no2_m)
+        deallocate(no3_m)
+        deallocate(dz_m)
+
+    end subroutine icedeallocate
+
     
     subroutine do_slow_ice(self, lvl, air_temp, water_temp, water_sal, ice_thickness, &
                            io, snow_thick, julian_day, lat)
@@ -184,20 +228,23 @@
         
         if (ice_thickness < 0.2) then
             self%z = 0.
-            self%dz = 0.
             self%par_z = 0.
+
             self%bulk_temperature = 0.
             self%bulk_salinity = 0.
             self%bulk_density = 0.
             self%brine_temperature = 0.
             self%brine_salinity = 0.
             self%brine_density = 0.
+
             self%a_carbon = 0.
             self%a_nitrogen = 0.
             self%a_phosphorus = 0.
+
             self%d_a_carbon = 0.
             self%d_a_nitrogen = 0.
             self%d_a_phosphorus = 0.
+
             self%nh4 = 0.
             self%d_nh4 = 0.
             self%no2 = 0.
@@ -206,7 +253,10 @@
             self%d_no3 = 0.
             self%po4 = 0.
             self%d_po4 = 0.
+
             self%brine_relative_volume = 0.
+
+            self%last_v_ammonium = 0.
         end if
     
         call self%do_grid(lvl, ice_thickness)
@@ -254,18 +304,29 @@
         end if
         
         !calculate fluxes of nutrients in ice
+        !processes rates are per day inside procedure
         call self%do_nitrogen(lvl, nh4, no2, no3)
+
         self%nh4 = self%nh4 + self%d_nh4 * dt
+        nh4_m(lvl) = nh4_m(lvl) + self%d_nh4 * dt
+
         self%no2 = self%no2 + self%d_no2 * dt
+        no2_m(lvl) = no2_m(lvl) + self%d_no2 * dt
+
         self%no3 = self%no3 + self%d_no3 * dt
-        self(1)%nh4 = self(2)%nh4
-        self(1)%no2 = self(2)%no2
-        self(1)%no3 = self(2)%no3
-        self(1)%po4 = self(2)%po4
-        
-        call self%do_phosphorus(po4)
+        no3_m(lvl) = no3_m(lvl) + self%d_no3 * dt
+
+        !processes rates are per day inside procedure
+        call self%do_phosphorus(lvl, po4)
         self%po4 = self%po4 + self%d_po4 * dt
-        self(1)%po4 = self(2)%po4
+        po4_m(lvl) = po4_m(lvl) + self%d_po4 * dt
+        
+        if (lvl == 2) then
+            nh4_m(lvl - 1) = nh4_m(lvl)
+            no2_m(lvl - 1) = no2_m(lvl)
+            no3_m(lvl - 1) = nh4_m(lvl)
+            po4_m(lvl - 1) = po4_m(lvl)
+        end if
         
         !processes rates are per hour inside procedure
         call self%do_a_carbon()
@@ -324,10 +385,10 @@
         delta = (hice - z_s) / non_b_layers !z_s is for bottom layer depth (3cm)
         if (lvl == number_of_layers) then
             self%z = hice
-            self%dz = z_s
+            dz_m(lvl) = z_s
         else
             self%z = lvl * delta 
-            self%dz = delta
+            dz_m(lvl) = delta
         end if
         
     end subroutine do_grid
@@ -472,184 +533,187 @@
         real(rk), intent(in):: nh4 !from upper water layer
         real(rk), intent(in):: no2 !from upper water layer
         real(rk), intent(in):: no3 !from upper water layer
-        integer:: i
+        
         real(rk):: v_ammonium, v_nina, release_n
 
         v_ammonium = self%v_ammonium()
         v_nina = self%v_nina()
         release_n = self%release_n()
         
-        !calculates nitrogen for bottom layer
+        !calculates nitrogen increment for bottom layer
         if (lvl == number_of_layers) then
             call self%do_bottom(nh4, self%d_nh4, self%a_nitrogen, &
                                 v_ammonium, release_n, &
-                                self%nh4)
+                                nh4_m)
             call self%do_bottom(no2, self%d_no2, self%a_nitrogen, &
                                 (v_nina / 2.), release_n, &
-                                self%no2)
+                                no2_m)
             call self%do_bottom(no3, self%d_no3, self%a_nitrogen, &
                                 (v_nina / 2.), release_n, &
-                                self%no3)
+                                no3_m)
+        !and for rest of layers
         else
-            call self%do_congelation(self(i)%d_nh4, self(i)%a_nitrogen, &
-                            self%v_ammonium(i), self%release_n(i), i, &
-                            self%nh4)
-            call self%do_congelation(self(i)%d_no2, self(i)%a_nitrogen, &
-                            (self%v_nina / 2.), self%release_n(i), i, &
-                            self%no2)
-            call self%do_congelation(self(i)%d_no3, self(i)%a_nitrogen, &
-                            (self%v_nina / 2.), self%release_n(i), i, &
-                            self%no3)
+            call self%do_congelation(self%d_nh4, self%a_nitrogen, &
+                            v_ammonium, release_n, lvl, &
+                            nh4_m)
+            call self%do_congelation(self%d_no2, self%a_nitrogen, &
+                            (v_nina / 2.), release_n, lvl, &
+                            no2_m)
+            call self%do_congelation(self%d_no3, self%a_nitrogen, &
+                            (v_nina / 2.), release_n, lvl, &
+                            no3_m)
         end if
     
     end subroutine do_nitrogen
     
-    !subroutine do_phosphorus(self, po4)
-    !!calculate fluxes of phosphorus in brine channels
-    !!per day
-    !
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !real(rk), intent(in):: po4
-    !integer:: i
-    !
-    !!calculates d_nh4 for bottom layer
-    !call self%do_bottom(po4, self(number_of_layers)%d_po4, self(number_of_layers)%a_phosphorus, &
-    !                    (self%uptake_p(number_of_layers) * 24.), self%release_p(number_of_layers), &
-    !                    self%po4)
-    !do i = number_of_layers - 1, 2, -1
-    !    call self%do_congelation(self(i)%d_po4, self(i)%a_phosphorus, &
-    !                    (self%uptake_p(i) * 24.), self%release_p(i), i, &
-    !                    self%po4)
-    !end do
-    !
-    !end subroutine do_phosphorus
-    !
+    subroutine do_phosphorus(self, lvl, po4)
+    !calculate fluxes of phosphorus in brine channels
+    !per day
+    
+        class(ice_layer):: self
+        integer,  intent(in):: lvl
+        real(rk), intent(in):: po4
+
+        real(rk):: uptake_p, release_p
+
+        uptake_p = self%uptake_p()
+        release_p = self%release_p()
+        
+        !calculates d_po4 for bottom layer
+        if (lvl == number_of_layers) then
+            call self%do_bottom(po4, self%d_po4, self%a_phosphorus, &
+                                (uptake_p * 24.), release_p, &
+                                po4_m)
+        !and for rest of layers
+        else
+            call self%do_congelation(self%d_po4, self%a_phosphorus, &
+                           (uptake_p * 24.), release_p, lvl, &
+                           po4_m)
+        end if
+    
+    end subroutine do_phosphorus
+    
     subroutine do_bottom(self, nut_in_water, d_nut, a_nut, uptake, release, nut_brine)
     !calculate bottom fluxes
     !per day
     
-    class(ice_layer):: self
-    real(rk):: nut_brine
-    real(rk), intent(in) :: nut_in_water, uptake, release
-    real(rk), intent(in) :: a_nut !in algae nutrients
-    real(rk), intent(out):: d_nut !increment of calculated brine nutrient
-    
-    d_nut = self%brine_flux_z(number_of_layers, nut_brine, nut_in_water) +&
-            self%brine_flux_s(number_of_layers, nut_brine, nut_in_water) +&
-            self%diffusion_flux_s(number_of_layers, nut_brine, nut_in_water) +&
-            self%congelation_flux_s(number_of_layers, nut_brine, nut_in_water) -&
-            a_nut * (uptake - release)
+        class(ice_layer):: self
+        real(rk), intent(in) :: nut_in_water, uptake, release
+        real(rk), intent(in) :: a_nut !in algae nutrients
+        real(rk), intent(out):: d_nut !increment of calculated brine nutrient
+        real(rk), dimension(:), intent(in) :: nut_brine
+        
+        d_nut = self%brine_flux_z(number_of_layers, nut_brine, nut_in_water) +&
+                self%brine_flux_s(number_of_layers, nut_brine, nut_in_water) +&
+                self%diffusion_flux_s(number_of_layers, nut_brine, nut_in_water) +&
+                self%congelation_flux_s(number_of_layers, nut_brine, nut_in_water) -&
+                a_nut * (uptake - release)
     
     end subroutine do_bottom
     
-    !subroutine do_congelation(self, d_nut, a_nut, uptake, release, layer, nut_brine)
-    !!brine concentrarion changes
-    !!per day
-    !
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !real(rk), dimension(:)        :: nut_brine
-    !integer              :: layer
-    !real(rk), intent(in) :: uptake, release
-    !real(rk), intent(in) :: a_nut !in algae nutrients
-    !real(rk), intent(out):: d_nut
-    !
-    !d_nut = self%brine_flux_z(layer, nut_brine) -&
-    !        a_nut * (uptake - release)
-    !
-    !end subroutine do_congelation
-    !
-    function brine_flux_z(self, layer, nut_brine, nut_in_water)
-    !brine flux for all layers - per day
+    subroutine do_congelation(self, d_nut, a_nut, uptake, release, lvl, nut_brine)
+    !brine concentrarion changes
+    !per day
     
-    implicit none
-    class(ice_layer), dimension(:)  :: self
-    real(rk), dimension(:)          :: nut_brine
-    integer                         :: layer
-    real(rk)                        :: brine_flux_z
-    real(rk), intent(in), optional  :: nut_in_water !for bottom layer
-    real(rk)                        :: gravity_drainage = 1.e-8! [m * s-1]
-    real(rk)                        :: z_conv = 1. !vertical distance over which sea ice is influenced by gravity drainage
+        class(ice_layer):: self
+        integer, intent(in)  :: lvl
+        real(rk), intent(in) :: uptake, release
+        real(rk), intent(in) :: a_nut !in algae nutrients
+        real(rk), intent(out):: d_nut
+        real(rk), dimension(:), intent(in) :: nut_brine
+        
+        d_nut = self%brine_flux_z(lvl, nut_brine) -&
+                a_nut * (uptake - release)
     
-    if (present(nut_in_water)) then
-        brine_flux_z = self(layer)%brine_relative_volume *&
-        gravity_drainage * z_conv *&
-        self%second_derivative(nut_brine(layer - 1), nut_brine(layer), nut_in_water, self(layer - 1)%dz, self(layer)%dz)
-    else
-        brine_flux_z = self(layer)%brine_relative_volume *&
-        gravity_drainage * z_conv *&
-        self%second_derivative(nut_brine(layer - 1), nut_brine(layer), nut_brine(layer + 1), self(layer - 1)%dz, self(layer)%dz)
-    end if
+    end subroutine do_congelation
     
-    brine_flux_z = 86400. * brine_flux_z !convert per second to per day
+    function brine_flux_z(self, lvl, nut_brine, nut_in_water)
+    !brine flux for all lvls - per day
+    
+        class(ice_layer) :: self
+        real(rk)                        :: brine_flux_z
+        integer, intent(in)             :: lvl
+        real(rk), intent(in), optional  :: nut_in_water !for bottom lvl
+        real(rk), dimension(:), intent(in) :: nut_brine
+
+        if (present(nut_in_water)) then
+            brine_flux_z = self%brine_relative_volume *&
+            gravity_drainage * z_conv *&
+            self%second_derivative(nut_brine(lvl - 1), nut_brine(lvl),&
+            nut_in_water, dz_m(lvl - 1), dz_m(lvl))
+        else
+            brine_flux_z = self%brine_relative_volume *&
+            gravity_drainage * z_conv *&
+            self%second_derivative(nut_brine(lvl - 1), nut_brine(lvl),&
+            nut_brine(lvl + 1), dz_m(lvl - 1), dz_m(lvl))
+        end if
+    
+        brine_flux_z = 86400. * brine_flux_z !convert per second to per day
     
     end function brine_flux_z
-    !
-    !function brine_flux_s(self, layer, nut_brine, nut_in_water)
-    !!brine flux for bottom - per day
-    !
-    !implicit none
-    !class(ice_layer), dimension(:)  :: self
-    !real(rk), dimension(:)          :: nut_brine
-    !integer                         :: layer
-    !real(rk)                        :: brine_flux_s
-    !real(rk), intent(in)            :: nut_in_water !for bottom layer
-    !
-    !brine_flux_s = self(layer)%brine_relative_volume *&
-    !    self%brine_release() * z_s *&
-    !    self%second_derivative(nut_brine(layer - 1), nut_brine(layer), nut_in_water, self(layer - 1)%dz, self(layer)%dz)
-    !brine_flux_s = 86400. * brine_flux_s !convert per second to per day
-    !
-    !end function brine_flux_s
-    !
-    !function diffusion_flux_s(self, layer, nut_brine, nut_in_water)
-    !!brine diffusion flux for bottom - per day
-    !
-    !implicit none
-    !class(ice_layer), dimension(:)  :: self
-    !real(rk), dimension(:)          :: nut_brine
-    !integer                         :: layer
-    !real(rk)                        :: diffusion_flux_s
-    !real(rk), intent(in)            :: nut_in_water !for bottom layer
-    !real(rk)                        :: k_wi = 1.e-5! [m2 s-1] diffusion coef. between bottom layer and sea water
-    !
-    !diffusion_flux_s = self(layer)%brine_relative_volume *&
-    !    k_wi *&
-    !    self%second_derivative(nut_brine(layer - 1), nut_brine(layer), nut_in_water, self(layer - 1)%dz, self(layer)%dz)
-    !diffusion_flux_s = 86400. * diffusion_flux_s !convert per second to per day
-    !
-    !end function diffusion_flux_s
-    !
-    !function congelation_flux_s(self, layer, nut_brine, nut_in_water)
-    !!brine diffusion flux for bottom - per day
-    !
-    !implicit none
-    !class(ice_layer), dimension(:)  :: self
-    !real(rk), dimension(:)          :: nut_brine
-    !integer                         :: layer
-    !real(rk)                        :: congelation_flux_s
-    !real(rk), intent(in)            :: nut_in_water !for bottom layer
-    !
-    !congelation_flux_s = (ice_growth * (nut_in_water - nut_brine(layer)) * nut_in_water) /&
-    !                     ((z_s + ice_growth) * self(layer)%brine_relative_volume * 86400.)
-    !
-    !end function congelation_flux_s
-    !
-    !function second_derivative(self, pre_layer, layer, next_layer, pre_h, next_h)
-    !!second_derivative
-    !
-    !implicit none
-    !class(ice_layer), dimension(:)  :: self
-    !real(rk), intent(in)            :: pre_layer, layer, next_layer, pre_h, next_h
-    !real(rk)                        :: second_derivative
-    !real(rk)                        :: h
-    !
-    !h = (pre_h + next_h) / 2.
-    !second_derivative = (pre_layer - 2. * layer + next_layer) / h**2
-    !
-    !end function second_derivative
-    !
+    
+    function brine_flux_s(self, lvl, nut_brine, nut_in_water)
+    !brine flux for bottom - per day
+    
+        class(ice_layer) :: self
+        integer, intent(in)             :: lvl
+        real(rk)                        :: brine_flux_s
+        real(rk), intent(in)            :: nut_in_water !for bottom layer
+        real(rk), dimension(:), intent(in) :: nut_brine
+        
+        brine_flux_s = self%brine_relative_volume *&
+        self%brine_release() * z_s *&
+        self%second_derivative(nut_brine(lvl - 1), nut_brine(lvl),&
+        nut_in_water, dz_m(lvl - 1), dz_m(lvl))
+
+        brine_flux_s = 86400. * brine_flux_s !convert per second to per day
+    
+    end function brine_flux_s
+    
+    function diffusion_flux_s(self, lvl, nut_brine, nut_in_water)
+    !brine diffusion flux for bottom - per day
+    
+        class(ice_layer) :: self
+        integer, intent(in)             :: lvl
+        real(rk)                        :: diffusion_flux_s
+        real(rk), intent(in)            :: nut_in_water !for bottom layer
+        real(rk), dimension(:), intent(in) :: nut_brine
+        
+        diffusion_flux_s = self%brine_relative_volume * k_wi *&
+        self%second_derivative(nut_brine(lvl - 1), nut_brine(lvl),&
+        nut_in_water, dz_m(lvl - 1), dz_m(lvl))
+
+        diffusion_flux_s = 86400. * diffusion_flux_s !convert per second to per day
+    
+    end function diffusion_flux_s
+    
+    function congelation_flux_s(self, lvl, nut_brine, nut_in_water)
+    !brine diffusion flux for bottom - per day
+    
+        class(ice_layer) :: self
+        integer, intent(in)             :: lvl
+        real(rk)                        :: congelation_flux_s
+        real(rk), intent(in)            :: nut_in_water !for bottom layer
+        real(rk), dimension(:), intent(in) :: nut_brine
+        
+        congelation_flux_s = (ice_growth * (nut_in_water - nut_brine(lvl)) * nut_in_water) /&
+                             ((z_s + ice_growth) * self%brine_relative_volume * 86400.)
+    
+    end function congelation_flux_s
+    
+    function second_derivative(self, pre_layer, layer, next_layer, pre_h, next_h)
+    !second_derivative
+    
+        class(ice_layer) :: self
+        real(rk), intent(in)            :: pre_layer, layer, next_layer, pre_h, next_h
+        real(rk)                        :: second_derivative
+        real(rk)                        :: h
+        
+        h = (pre_h + next_h) / 2.
+        second_derivative = (pre_layer - 2. * layer + next_layer) / h**2
+    
+    end function second_derivative
+    
     !function brine_release(self)
     !!brine_release [m s-1]
     !
@@ -785,29 +849,27 @@
     !
     !end function f_nut
     !
-    !function n_cell(self, layer)
-    !!nitrogen cell quota - [mg N mg C-1]
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !integer :: layer
-    !real(rk):: n_cell
-    !
-    !n_cell = self(layer)%a_nitrogen / self(layer)%a_carbon
-    !if(isnan(n_cell)) n_cell = 0.
-    !
-    !end function n_cell
-    !
-    !function p_cell(self, layer)
-    !!phosphorus cell quota - [mg P mg C-1]
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !integer :: layer
-    !real(rk):: p_cell
-    !
-    !p_cell = self(layer)%a_phosphorus / self(layer)%a_carbon
-    !if(isnan(p_cell)) p_cell = 0.
-    !
-    !end function p_cell
+    function n_cell(self)
+    !nitrogen cell quota - [mg N mg C-1]
+    
+        class(ice_layer):: self
+        real(rk):: n_cell
+        
+        n_cell = self%a_nitrogen / self%a_carbon
+        if(isnan(n_cell)) n_cell = 0.
+    
+    end function n_cell
+    
+    function p_cell(self)
+    !phosphorus cell quota - [mg P mg C-1]
+    
+        class(ice_layer):: self
+        real(rk):: p_cell
+        
+        p_cell = self%a_phosphorus / self%a_carbon
+        if(isnan(p_cell)) p_cell = 0.
+    
+    end function p_cell
     !
     !function resp(self, layer)
     !!respiration - per hour
@@ -909,73 +971,61 @@
     !
     !end function uptake_n
     !
-    !function v_ammonium(self, layer)
-    !!ammonium uptake rate - per day
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !integer :: layer
-    !real(rk):: v_ammonium
-    !real(rk):: v_max_n = 1.08! [1/day] maximal uptake rate
-    !real(rk):: k_ammonium = 2.94! [microM N] half saturation constant for ammonium uptake
-    !real(rk):: n_max = 0.53! [mg N * mg C-1]
-    !real(rk):: n_min = 0.1! [mg N * mg C-1]
-    !real(rk):: max_n_p = 291! max N/P in algae
-    !real(rk):: foo
-    !
-    !foo = self(layer)%a_nitrogen / self(layer)%a_phosphorus
-    !if (self(layer)%a_nitrogen > n_min .and. self(layer)%a_nitrogen < n_max &
-    !    .and. foo < max_n_p) then
-    !    v_ammonium = (v_max_n * self(layer)%nh4) / (k_ammonium + self(layer)%nh4) *&
-    !        (1 - (self%n_cell(layer) / n_max))
-    !else
-    !    v_ammonium = 0.
-    !end if
-    !self(layer)%last_v_ammonium = v_ammonium
-    !
-    !end function v_ammonium
-    !
-    !function v_nina(self, layer)
-    !!nitrite and nitrate uptake rate - per day
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !integer :: layer
-    !real(rk):: v_nina
-    !real(rk):: v_max_n = 1.08! [1/day] maximal uptake rate
-    !real(rk):: k_nina = 30! [microM N] half saturation constant for no2 and no3 uptake
-    !real(rk):: n_max = 0.53! [mg N * mg C-1] maximum nitrogen cell quota
-    !real(rk):: n_min = 0.1! [mg N * mg C-1]
-    !real(rk):: max_n_p = 291! max N/P in algae
-    !real(rk):: foo
-    !
-    !foo = self(layer)%a_nitrogen / self(layer)%a_phosphorus
-    !if (self(layer)%a_nitrogen > n_min .and. self(layer)%a_nitrogen < n_max &
-    !    .and. foo < max_n_p) then
-    !    v_nina = max(0., (v_max_n - self(layer)%last_v_ammonium)) *&
-    !        (self(layer)%no2 + self(layer)%no3) / (k_nina + self(layer)%no2 + self(layer)%no3) *&
-    !        (1 - (self%n_cell(layer) / n_max))
-    !else
-    !    v_nina = 0.
-    !end if
-    !
-    !end function v_nina
-    !
-    !function release_n(self, layer)
-    !!release - release everything more then n_max - mg N
-    !
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !integer :: layer
-    !real(rk):: release_n
-    !real(rk):: n_max = 0.53! [mg N * mg C-1] maximum nitrogen cell quota
-    !
-    !if (self%n_cell(layer) > n_max .and. self(layer)%a_nitrogen > 0.) then
-    !    release_n = (self(layer)%a_nitrogen - n_max * self(layer)%a_carbon) / self(layer)%a_nitrogen
-    !else
-    !    release_n = 0.
-    !end if
-    !
-    !end function release_n
-    !
+    function v_ammonium(self)
+    !ammonium uptake rate - per day
+    
+        class(ice_layer):: self
+        real(rk):: v_ammonium
+
+        real(rk):: foo
+        
+        foo = self%a_nitrogen / self%a_phosphorus
+        if (self%a_nitrogen > n_min .and. self%a_nitrogen < n_max &
+            .and. foo < max_n_p) then
+            v_ammonium = (v_max_n * self%nh4) / (k_ammonium + self%nh4) *&
+                (1 - (self%n_cell() / n_max))
+        else
+            v_ammonium = 0.
+        end if
+
+        self%last_v_ammonium = v_ammonium
+    
+    end function v_ammonium
+    
+    function v_nina(self)
+    !nitrite and nitrate uptake rate - per day
+
+        class(ice_layer):: self
+        real(rk):: v_nina
+
+        real(rk):: foo
+        
+        foo = self%a_nitrogen / self%a_phosphorus
+        if (self%a_nitrogen > n_min .and. self%a_nitrogen < n_max &
+            .and. foo < max_n_p) then
+            v_nina = max(0., (v_max_n - self%last_v_ammonium)) *&
+                (self%no2 + self%no3) / (k_nina + self%no2 + self%no3) *&
+                (1 - (self%n_cell() / n_max))
+        else
+            v_nina = 0.
+        end if
+    
+    end function v_nina
+    
+    function release_n(self)
+    !release - release everything more then n_max - mg N
+    
+        class(ice_layer):: self
+        real(rk):: release_n
+        
+        if (self%n_cell() > n_max .and. self%a_nitrogen > 0.) then
+            release_n = (self%a_nitrogen - n_max * self%a_carbon) / self%a_nitrogen
+        else
+            release_n = 0.
+        end if
+    
+    end function release_n
+    
     !subroutine do_a_phosphorus(self)
     !!brine concentrations changes of ice algae po4
     !!mg N per hour
@@ -997,49 +1047,40 @@
     !
     !end subroutine do_a_phosphorus
     !
-    !function uptake_p(self, layer)
-    !!a lot of problems could be here - uptake of N by algae - per hour
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !integer :: layer
-    !real(rk):: uptake_p
-    !real(rk):: phos_min = 0.002! [mg P mg C-1] minimum phosphorus cell quota
-    !real(rk):: phos_max = 0.08! [mg P mg C-1] maximum phosphorus cell quota
-    !real(rk):: min_n_p = 4.! min N/P in algae
-    !real(rk):: v_max_p = 1.08! [d-1] maximal uptake rate of po4
-    !real(rk):: k_p = 2.! [microM P] half saturation constant for po4 uptake
-    !real(rk):: foo
-    !
-    !foo = self(layer)%a_nitrogen / self(layer)%a_phosphorus
-    !if (self(layer)%a_phosphorus > phos_min .and. self(layer)%a_phosphorus < phos_max &
-    !    .and. foo > min_n_p) then
-    !    uptake_p = (v_max_p * self(layer)%po4) / (k_p + self(layer)%po4) *&
-    !        (1. - (self%p_cell(layer) / phos_max))
-    !else
-    !    uptake_p = 0.
-    !end if
-    !uptake_p = uptake_p / 24. !to per hour transform
-    !    
-    !end function uptake_p
-    !
-    !function release_p(self, layer)
-    !!release - release everything more then n_max - mg N
-    !
-    !implicit none
-    !class(ice_layer), dimension(:):: self
-    !integer :: layer
-    !real(rk):: release_p
-    !real(rk):: phos_max = 0.08! [mg P mg C-1] maximum phosphorus cell quota
-    !
-    !if (self%p_cell(layer) > phos_max .and. self(layer)%a_phosphorus > 0.) then
-    !    release_p = (self(layer)%a_phosphorus - phos_max * self(layer)%a_carbon) / self(layer)%a_phosphorus
-    !else
-    !    release_p = 0.
-    !end if
-    !
-    !end function release_p
-    !
-    end module ice_algae_lib
+    function uptake_p(self)
+    !a lot of problems could be here - uptake of N by algae - per hour
+
+        class(ice_layer):: self
+        real(rk):: uptake_p
+        real(rk):: foo
+        
+        foo = self%a_nitrogen / self%a_phosphorus
+        if (self%a_phosphorus > phos_min .and. self%a_phosphorus < phos_max &
+            .and. foo > min_n_p) then
+            uptake_p = (v_max_p * self%po4) / (k_p + self%po4) *&
+                (1. - (self%p_cell() / phos_max))
+        else
+            uptake_p = 0.
+        end if
+        uptake_p = uptake_p / 24. !to per hour transform
+        
+    end function uptake_p
+    
+    function release_p(self)
+    !release - release everything more then n_max - mg N
+    
+        class(ice_layer):: self
+        real(rk):: release_p
+        
+        if (self%p_cell() > phos_max .and. self%a_phosphorus > 0.) then
+            release_p = (self%a_phosphorus - phos_max * self%a_carbon) / self%a_phosphorus
+        else
+            release_p = 0.
+        end if
+    
+    end function release_p
+    
+end module ice_algae_lib
     
 !-----------------------------------------------------------------------
 ! Copyright under the GNU Public License - www.gnu.org
