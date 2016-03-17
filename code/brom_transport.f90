@@ -349,7 +349,7 @@ contains
            
             !-------NETCDF-----------------------------------------------------------------------------------------    
             write (*,'(a, i4, a, i4)') " model year:", model_year, "; julianday:", julianday
-            call netcdf_ice%save_netcdf_algae(ice_l, 1, number_of_layers, number_of_layers, julianday, hice(julianday))
+            call netcdf_ice%save_netcdf_algae(ice_l, 1, number_of_layers, julianday, hice(julianday))
             call netcdf_pelagic%save_netcdf(1, boundary_water_bbl - 1,  lev_max, julianday, cc, tem2, sal2, Kz2, model, z, iz)
             call netcdf_bottom%save_netcdf(boundary_water_bbl, lev_max, lev_max, julianday, cc, tem2, sal2, Kz2, model, z, iz)
             if (i == last_day - 1) then
@@ -386,7 +386,6 @@ contains
     deallocate(dz)
     deallocate(kz_bio)
     !allocated in ice_algae
-    call icedeallocate()
     deallocate(ice_l)
     
     write (*,'(a)') "finished"
