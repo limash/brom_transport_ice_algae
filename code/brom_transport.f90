@@ -94,7 +94,7 @@ contains
         call input_netcdf('KaraSea.nc', z, dz, kz_bio, lev_max, tem2, sal2, kz2, hice, boundary_bbl_sediments, &
             boundary_water_bbl, width_bbl, resolution_bbl, width_bioturbation, resolution_bioturbation, &
             width_sediments, resolution_sediments, year, ice_area, heat_flux, snow_thick, t_ice)
-        kz2(1:35, :) = kz2(1:35, :) * 0.2 !approved to do
+        kz2(1:35, :) = kz2(1:35, :) * 0.1 !question
         kz2 = kz2 * dt * 86400 !because kz2 in m*m/sec, but here we need in day * time step
         
         !initialize FABM model from fabm.yaml
@@ -287,7 +287,7 @@ contains
             end if
             
             !ice algae processes calculated once per day is here, also recalculates io for bottom of ice layer
-            do k = number_of_layers, 1 
+            do k = number_of_layers, 1, -1
                 call ice_l(k)%do_slow_ice(k, t_ice(julianday), tem2(1, julianday), sal2(1, julianday), &
                                    hice(julianday), io, snow_thick(julianday), julianday, lat_light)
             end do
@@ -315,7 +315,7 @@ contains
                 cc = max(0.00000000001, (cc + dcc))
                 
                 !ice algae
-                do k = number_of_layers, 2 
+                do k = number_of_layers, 2, -1
                     call ice_l(k)%do_ice(k, cc(1, i_NH4), cc(1, i_NO2), cc(1, i_NO3), cc(1, i_PO4), dt, hice(julianday))
                 end do
                 

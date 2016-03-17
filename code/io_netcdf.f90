@@ -446,7 +446,7 @@ contains
         integer   :: edges(2), start(2), start_time(1), edges_time(1)
         real      :: foo(1), bar(1)
 
-        do i = last_lvl, 1
+        do i = last_lvl, 1, -1
             call ice_l(i)%get_algae(z(i), par_z(i), bulk_temperature(i),&
                 bulk_salinity(i), bulk_density(i), brine_temperature(i),&
                 brine_salinity(i), brine_density(i), a_carbon(i), a_nitrogen(i),&

@@ -1,6 +1,4 @@
 build/
 *.dat
-data/output_b.nc
-data/output_p.nc
-data/output_a.nc
+data/output*.nc
 *~
