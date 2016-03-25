@@ -17,11 +17,17 @@ module ice_algae_lib
     implicit none
     private
     
-    integer :: number_of_layers = 5
+    integer :: number_of_layers = 5 
 
     real(rk):: day_length
     real(rk):: prev_ice_thickness
     real(rk):: ice_growth
+
+    real(rk):: alb_ice = 0.744  !ice albedo
+    real(rk):: alb_snow = 0.9   !snow albedo
+    real(rk):: k_ice = 0.930    !extinction coeff. for ice m-1
+    real(rk):: k_snow = 4.3     !extinction coeff. for snow m-1
+    real(rk):: io_ice = 0.97    !fraction of rad transmitted through ice
 
     real(rk):: z_s = 0.03 !bottom layer width
     real(rk):: p_b = 1.2 !maximum rate of photosynthesis (mg C mg Chl-1 h-1)
@@ -416,17 +422,12 @@ contains
         real(rk), intent(inout) :: io
         real(rk)                :: io_e             !io in micromoles
         real(rk)                :: par_alb, par_scat
-        real(rk), parameter     :: alb_ice = 0.744  !ice albedo
-        real(rk), parameter     :: alb_snow = 0.9   !snow albedo
-        real(rk), parameter     :: k_ice = 0.930    !extinction coeff. for ice m-1
-        real(rk), parameter     :: k_snow = 4.3     !extinction coeff. for snow m-1
-        real(rk), parameter     :: io_ice = 0.97    !fraction of rad transmitted through ice
         
         io_e = io / 4.6
         if (snow_thick <= 0.005) then !albedo influence
-            par_alb = io * (1. - alb_ice)
+            par_alb = io_e * (1. - alb_ice)
         else
-            par_alb = io * (1. - alb_snow) * exp(-k_snow * snow_thick)
+            par_alb = io_e * (1. - alb_snow) * exp(-k_snow * snow_thick)
         end if
         
         par_scat = par_alb * io_ice !after scattered surface of ice
