@@ -1,7 +1,4 @@
 module ice_algae_lib
-    
-    !REVISION HISTORY:
-    !Original author(s): Shamil Yakubov
     !to do: does k_ice depend on chl? - update at every model step implementation
     !       f_par integration in layers with algae for more precise light limitation
     !       z_conv equals 1 for now - correction needed

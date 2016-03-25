@@ -1,9 +1,5 @@
     program main
     
-    !REVISION HISTORY:
-    !Original author(s): Shamil Yakubov
-    !dev_version
-    
     use brom_transport, only: init_brom_transport, do_brom_transport, clear_brom_transport
 
     !initializing, writing from gotm data and fabm.yaml included
