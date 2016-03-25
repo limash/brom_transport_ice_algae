@@ -1,9 +1,5 @@
 module io_netcdf
 
-    !REVISION HISTORY:
-    !Original author(s): Shamil Yakubov
-    !to do:
-
     use netcdf
     use fabm, only:type_model,fabm_get_bulk_diagnostic_data
     use fabm_types, only: rk

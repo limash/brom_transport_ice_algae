@@ -1,12 +1,6 @@
 module brom_transport
-    !REVISION HISTORY:
-    !Original author(s): Shamil Yakubov, Evgeniy Yakushev
-    !Shamil_11_2015 - yaml configurator was added
-    !Shamil_12_2015 - ice dependencies were added
-    !Shamil_01_2016 - ice_algae object was added
-    !to do:
-    ! - 
-    
+!transport module    
+
     use fabm
     use fabm_config
     use fabm_types, only: attribute_length, rk
@@ -67,9 +61,7 @@ module brom_transport
 contains
 
     subroutine init_brom_transport()
-        !REVISION HISTORY: Shamil Yakubov 11_2015 
-        !- get_brom_par from brom.yaml was added
-        !- io with fabm linking was deleted
+    !initialization
         
         integer                 :: i
         
