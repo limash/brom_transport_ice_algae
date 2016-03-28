@@ -158,10 +158,6 @@ contains
     end subroutine init_brom_transport
     
     subroutine do_brom_transport()
-        !REVISION HISTORY: Shamil Yakubov 16_12_2015 
-        !- excess cirles were removed
-        !- to the day/dt multiplation were moved to here
-        !- 12_2015 caco3 on low boundary was added
         
         use calculate, only: calculate_phys, calculate_sed
         
