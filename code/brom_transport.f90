@@ -353,30 +353,31 @@ contains
     end subroutine do_brom_transport
     
     subroutine clear_brom_transport()
-    !allocated here
-    deallocate(cc)
-    deallocate(dcc)
-    deallocate(wbio) 
-    deallocate(bound_up)
-    deallocate(bound_low)
-    deallocate(use_bound_up)
-    deallocate(use_bound_low)
-    deallocate(par_name)
-    deallocate(iz)
-    deallocate(density)
-    deallocate(pressure)
-    !allocated in io_netcdf
-    deallocate(tem2)
-    deallocate(sal2)
-    deallocate(hice)
-    deallocate(Kz2)
-    deallocate(z)
-    deallocate(dz)
-    deallocate(kz_bio)
-    !allocated in ice_algae
-    deallocate(ice_l)
-    
-    write (*,'(a)') "finished"
+
+        !allocated here
+        deallocate(cc)
+        deallocate(dcc)
+        deallocate(wbio) 
+        deallocate(bound_up)
+        deallocate(bound_low)
+        deallocate(use_bound_up)
+        deallocate(use_bound_low)
+        deallocate(par_name)
+        deallocate(iz)
+        deallocate(density)
+        deallocate(pressure)
+        !allocated in io_netcdf
+        deallocate(tem2)
+        deallocate(sal2)
+        deallocate(hice)
+        deallocate(Kz2)
+        deallocate(z)
+        deallocate(dz)
+        deallocate(kz_bio)
+        !allocated in ice_algae
+        deallocate(ice_l)
+        
+        write (*,'(a)') "finish"
     
     end subroutine clear_brom_transport
 
