@@ -274,6 +274,7 @@ contains
             self%last_gpp = 0.
             self%last_f_t = 0.
             self%last_mort = 0.
+            return
         end if
     
         call self%do_grid(lvl, ice_thickness)
@@ -421,11 +422,11 @@ contains
         real(rk)                :: par_alb, par_scat
         
         io_e = io / 4.6
-        if (snow_thick <= 0.005) then !albedo influence
-            par_alb = io_e * (1. - alb_ice)
-        else
-            par_alb = io_e * (1. - alb_snow) * exp(-k_snow * snow_thick)
-        end if
+        !if (snow_thick <= 0.005) then !albedo influence
+        par_alb = io_e * (1. - alb_ice)
+        !else
+        !    par_alb = io_e * (1. - alb_snow) * exp(-k_snow * snow_thick)
+        !end if
         
         par_scat = par_alb * io_ice !after scattered surface of ice
         self%par_z = par_scat * exp(-k_ice * self%z)
