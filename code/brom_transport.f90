@@ -47,8 +47,8 @@ module brom_transport
 
     !grids for temperature, salinity, coefficient of turbulence(kz2)
     real(rk), allocatable, dimension(:, :) :: tem2, sal2, kz2
-    !arrays with state variables and their increments
-    real(rk), allocatable, dimension(:, :) :: cc, dcc
+    !arrays with state variables, their increments and fluxes
+    real(rk), allocatable, dimension(:, :) :: cc, dcc, fick
     !vertical velocity (m/s, negative for sinking)
     real(rk), allocatable, dimension(:, :) :: wbio
 
@@ -87,7 +87,6 @@ contains
             boundary_water_bbl, width_bbl, resolution_bbl, width_bioturbation, resolution_bioturbation, &
             width_sediments, resolution_sediments, year, ice_area, heat_flux, snow_thick, t_ice)
         kz2(1:35, :) = kz2(1:35, :) * 0.1 !question
-        kz2 = kz2 * dt * 86400 !because kz2 in m*m/sec, but here we need in day * time step
         
         !initialize FABM model from fabm.yaml
         call fabm_create_model_from_yaml_file(model)
@@ -298,36 +297,45 @@ contains
                 !Kinetic processes (time integration is needed)
                 dcc = 0.
                 call fabm_do(model, 1, lev_max, dcc)
-                dcc = dcc * dt * 86400.
                 
                 !integration
-                cc = max(0.00000000001, (cc + dcc))
+                cc = max(0.00000000001, (cc + dcc * dt * 86400.))
                 
                 !ice algae
                 do k = number_of_layers, 2, -1
                     call ice_l(k)%do_ice(k, cc(1, i_NH4), cc(1, i_NO2), cc(1, i_NO3), cc(1, i_PO4), dt, hice(julianday))
                 end do
                 
+                !compute surface fluxes in fabm
+                flux_sf = 0.
+                call fabm_do_surface(model, flux_sf)
+
+                !freq_az is defined on brom.yaml
                 do  ip = 1, freq_az
                     !compute surface fluxes in FABM
-                    flux_sf = 0.
-                    if (hice(julianday) < 0.2) then
-                        call fabm_do_surface(model,flux_sf)
-                        flux_sf = flux_sf * dt * 86400.
-                    end if
+                    dcc = 0.
                     call calculate_phys(cc, lev_max, par_max, use_bound_up, use_bound_low, bound_up, bound_low, &
-                                flux_sf, boundary_bbl_sediments, kz2, julianday, kz_bio, i_O2, dz, freq_az, dt)
+                                flux_sf, boundary_bbl_sediments, kz2, julianday, kz_bio, i_O2, dz, freq_az, &
+                                dcc, fick)
+                    !time integration
+                    do k = 2, (lev_max - 1)
+                        cc(k, :) = cc(k, :) + (dt / freq_az) * dcc(k, :) * 86400.
+                    end do
                 end do
                 
                 !sedimentation of particulate matter
                 !compute residual vertical velocity (sinking/floating) in FABM.
                 wbio = 0.
                 call fabm_get_vertical_movement(model, 1, lev_max, wbio)
-                wbio = wbio * dt * 86400.
-                
+
                 !freq_sed is defined in brom.yaml
                 do  ip = 1, freq_sed
-                    call calculate_sed(par_max, lev_max, kz2, julianday, wbio, cc, dz, freq_sed, boundary_bbl_sediments)
+                    dcc = 0.
+                    call calculate_sed(par_max, lev_max, wbio, cc, dz, boundary_bbl_sediments, dcc)
+                    !time integration
+                    do  k = 2, (lev_max - 1)
+                        cc(k, :) = cc(k, :) + (dt / freq_sed) * dcc(k, :) * 86400.
+                    end do
                 end do
 
                 !for debug reason           
@@ -358,6 +366,7 @@ contains
         !allocated here
         deallocate(cc)
         deallocate(dcc)
+        deallocate(fick)
         deallocate(wbio) 
         deallocate(bound_up)
         deallocate(bound_low)

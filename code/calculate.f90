@@ -9,7 +9,8 @@ module calculate
 contains
     
     subroutine calculate_phys(cc, lev_max, par_max, use_bound_up, use_bound_low, bound_up, bound_low, &
-                            surf_flux, boundary_bbl_sediments, kz2, julianday, kz_bio, i_O2, dz, freq_az, dt)
+                            surf_flux, boundary_bbl_sediments, kz2, julianday, kz_bio, i_O2, dz, freq_az, &
+                            dcc, fick)
    
         real(rk), dimension(:, :), intent(inout)          :: cc
         integer, intent(in)                               :: lev_max
@@ -21,11 +22,11 @@ contains
         integer, intent(in)                               :: julianday
         real(rk), intent(in)                              :: kz_bio(:)
         integer, intent(in)                               :: i_O2
-        real(rk), intent(in)                              :: dz(:), dt
+        real(rk), intent(in)                              :: dz(:)
         integer, intent(in)                               :: freq_az
         
         integer                                           :: k, ip
-        real(rk), dimension(lev_max, par_max)             :: dcc, fick
+        real(rk), dimension(lev_max, par_max), intent(out):: dcc, fick
         
         dcc = 0.
         fick = 0.
@@ -51,7 +52,7 @@ contains
                     end if
                 end do
             end if
-            !turbulence and advection
+            !turbulence
             !fluxes of parameters, bioturbation (kz_bio) depend on Zoo or O2 availability at the surface  
             fick(k, :) = (kz2(k, julianday) + kz_bio(k)                                                &
                 * cc(boundary_bbl_sediments - 1, i_O2) / (cc(boundary_bbl_sediments - 1, i_O2) + 5.))   &
@@ -65,30 +66,23 @@ contains
                 dcc(k, :) = dcc(k, :) + surf_flux(:) / dz(k)
             end if
         end do
-        !time integration
-        do k = 2, (lev_max - 1)
-            cc(k, :) = cc(k, :) + (1. / freq_az) * dcc(k, :)
-        end do
     
     end subroutine calculate_phys
                             
-    subroutine calculate_sed(par_max, lev_max, kz2, julianday, wbio, cc, dz, freq_sed, boundary_bbl_sediments)
+    subroutine calculate_sed(par_max, lev_max, wbio, cc, dz, boundary_bbl_sediments, dcc)
     
         real(rk), dimension(:, :), intent(inout)            :: cc
         real(rk), dimension(:, :), intent(in)               :: wbio
         integer, intent(in)                                 :: par_max
         integer, intent(in)                                 :: lev_max
-        real(rk), intent(in)                                :: kz2(:, :)
-        integer, intent(in)                                 :: julianday
         real(rk), intent(in)                                :: dz(:)
-        integer, intent(in)                                 :: freq_sed
         integer, intent(in)                                 :: boundary_bbl_sediments
         
-        real(rk), dimension(lev_max, par_max)               :: dcc
+        real(rk), dimension(lev_max, par_max), intent(out)  :: dcc
         real(rk)                                            :: w_u(par_max)
         real(rk)                                            :: w_d(par_max)
         real(rk), parameter                                 :: w_buruing = 0.
-        integer                                             :: k, ip
+        integer                                             :: k
         
         dcc = 0.
         do  k = 2, lev_max - 1
@@ -114,14 +108,11 @@ contains
                 w_u = 0.0
             end if
             
-            dcc(k, :) = 0.5 * (w_u * cc(k - 1, :) / ((dz(k - 1) + dz(k)) /2.) - w_d * cc(k, :)  / ((dz(k - 1) + dz(k)) /2.))! w_u - m/day*dt
+            !multiplication by 0.5 was deleted
+            dcc(k, :) = (w_u * cc(k - 1, :) / ((dz(k - 1) + dz(k)) /2.) - w_d * cc(k, :) / &
+                ((dz(k - 1) + dz(k)) /2.))
         end do
         
-        !time integration
-        do  k = 2, (lev_max - 1)
-            cc(k, :) = cc(k, :) + (1. / freq_sed) * dcc(k, :)
-        end do
-
     end subroutine calculate_sed
 
 end module calculate
