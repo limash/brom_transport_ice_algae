@@ -12,6 +12,7 @@ contains
                             surf_flux, boundary_bbl_sediments, kz2, julianday, kz_bio, i_O2, dz, freq_az, &
                             dcc, fick)
    
+        real(rk), dimension(lev_max, par_max), intent(inout):: dcc, fick
         real(rk), dimension(:, :), intent(inout)          :: cc
         integer, intent(in)                               :: lev_max
         integer, intent(in)                               :: par_max
@@ -26,10 +27,7 @@ contains
         integer, intent(in)                               :: freq_az
         
         integer                                           :: k, ip
-        real(rk), dimension(lev_max, par_max), intent(out):: dcc, fick
         
-        dcc = 0.
-        fick = 0.
         do k = 2, (lev_max - 1)
             !boundary conditions
             !upper boundary
@@ -78,13 +76,12 @@ contains
         real(rk), intent(in)                                :: dz(:)
         integer, intent(in)                                 :: boundary_bbl_sediments
         
-        real(rk), dimension(lev_max, par_max), intent(out)  :: dcc
+        real(rk), dimension(lev_max, par_max), intent(inout):: dcc
         real(rk)                                            :: w_u(par_max)
         real(rk)                                            :: w_d(par_max)
         real(rk), parameter                                 :: w_buruing = 0.
         integer                                             :: k
         
-        dcc = 0.
         do  k = 2, lev_max - 1
             !boundary conditions
             

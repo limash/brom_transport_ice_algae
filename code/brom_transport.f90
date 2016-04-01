@@ -100,6 +100,7 @@ contains
         !main array and its icrement allocating    
         allocate(cc(lev_max, par_max))
         allocate(dcc(lev_max, par_max))
+        allocate(fick(lev_max, par_max))
         allocate(wbio(lev_max, par_max))
         allocate(bound_up(par_max))
         allocate(bound_low(par_max))
@@ -265,7 +266,7 @@ contains
                 bound_up(i_Si)  = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 8.0! max 16 microM at day 205 approx.
             end if
             if (i_CaCO3 /= -1) then
-                use_bound_low(i_CaCO3) = .true.
+                use_bound_low(i_CaCO3) = .false.
                 bound_low(i_CaCO3) = caco3
             end if
             
@@ -314,6 +315,7 @@ contains
                 do  ip = 1, freq_az
                     !compute surface fluxes in FABM
                     dcc = 0.
+                    fick = 0.
                     call calculate_phys(cc, lev_max, par_max, use_bound_up, use_bound_low, bound_up, bound_low, &
                                 flux_sf, boundary_bbl_sediments, kz2, julianday, kz_bio, i_O2, dz, freq_az, &
                                 dcc, fick)

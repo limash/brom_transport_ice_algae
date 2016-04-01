@@ -399,7 +399,9 @@ contains
         real(rk)            :: non_b_layers, delta
         
         non_b_layers = number_of_layers - 1.
-        delta = (hice - z_s) / non_b_layers !z_s is for bottom layer depth (3cm)
+
+        !z_s is for bottom layer depth (3cm)
+        delta = (hice - z_s) / non_b_layers
         if (lvl == number_of_layers) then
             self%z = hice
             dz_m(lvl) = z_s
@@ -411,8 +413,13 @@ contains
     end subroutine do_grid
     
     subroutine do_par(self, lvl, io, snow_thick)
-    !io in Watts, to calculate it in micromoles photons per m2*s, [w] = 4.6*[micromole photons]
+    !io in Watts, to calculate it in micromoles photons per m2*s =>
+    !=> [w] = 4.6*[micromole photons]
     !calculates irradiance par_z
+    !Grenfell and Maykutt 1977 indicate that the magnitude and shape
+    !of the albedo curves depend strongly on the amount of liquid
+    !water present in the upper part of the ice, so it fluctuates
+    !throught year (true also for extinction coefficient)
         
         class(ice_layer):: self
         integer,  intent(in)    :: lvl

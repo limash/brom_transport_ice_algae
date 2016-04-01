@@ -382,7 +382,7 @@ contains
         integer                                 :: ip, i
         integer                                 :: edges(2), start(2), start_time(1), edges_time(1)
         real(rk)                                :: temp_matrix(lev_max)
-        real                                    :: foo(1) !nevermind what is it but it works
+        real                                    :: foo(1)
             
         !write data
         edges(1) = last_lvl - first_lvl + 1
