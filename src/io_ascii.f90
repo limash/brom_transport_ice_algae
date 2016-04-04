@@ -16,11 +16,12 @@ module io_ascii
     
     type (brom_par), pointer :: first
     
-    public find_index, porting_initial_state_variables_data, init_common, saving_state_variables_data, get_brom_par
-
+    public find_index, porting_initial_state_variables_data, &
+        init_brom_par, get_brom_par, close_brom_par, &
+        saving_state_variables_data 
 contains
     
-    subroutine init_common()
+    subroutine init_brom_par()
     !from brom.yaml initialization
     
         class (type_node), pointer       :: node
@@ -43,7 +44,7 @@ contains
                    &at the root (non-indented) level, not a single value. Are you missing a trailing colon?')
         end select
     
-    end subroutine init_common
+    end subroutine init_brom_par
     
     subroutine tree(mapping)
     
@@ -152,6 +153,12 @@ contains
         stop
     
     end function get_brom_par
+
+    subroutine close_brom_par()
+        
+        nullify(first)
+
+    end subroutine close_brom_par
     
     function find_index(names, name) result(index)
     

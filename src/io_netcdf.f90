@@ -137,9 +137,9 @@ contains
         call check_err(nf90_get_var(ncid, t_ice_id, t_ice_temp))
         call check_err(nf90_get_var(ncid, AKs_varid, AKs_temp))
         call check_err(nf90_get_var(ncid, depth_varid, z_temp))
-        !creating grid
 
-        range = 352 !adding 352 days to initial data (12:00 15 january 1980 become 12:00 1 january 1981)
+        !creating grid
+        range = 352 !adding 352 days to initial data (12:00 15 january 1980 becomes 12:00 1 january 1981)
         if (year < 1981 .and. year > 2012) then
             print *, "Wrong year, it should be between 1981 and 2012"
             stop

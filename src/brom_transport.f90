@@ -38,7 +38,7 @@ module brom_transport
     real(rk), allocatable, dimension(:) :: hice, ice_area, heat_flux, snow_thick, t_ice
     !arrays for bouns conditions
     real(rk), allocatable, dimension(:) :: bound_up, bound_low
-    !and more variables
+  
     real(rk), allocatable, dimension(:) :: density, pressure
     !irradiance in water column
     real(rk), allocatable, dimension(:) :: iz
@@ -66,7 +66,7 @@ contains
         integer                 :: i
         
         !reading brom.yaml: module io_ascii
-        call init_common()
+        call init_brom_par()
 
         !getting variable values from brom.yaml: module io_ascii
         width_bbl               = get_brom_par("width_bbl")
@@ -106,14 +106,15 @@ contains
         allocate(bound_low(par_max))
         allocate(use_bound_up(par_max))
         allocate(use_bound_low(par_max))
+        allocate(iz(lev_max))
+        allocate(density(lev_max))
+        allocate(pressure(lev_max))  
+        allocate(par_name(par_max))
         use_bound_up = .false.
         use_bound_low = .false.
 
         !auxiliary variables
-        allocate(iz(lev_max))
-        allocate(density(lev_max))
         density = get_brom_par("density")
-        allocate(pressure(lev_max))  
         pressure = z + 10 !dbar, roughly equivalent to depth in m+ 1 bar atmospheric pressure
         
         ! Send pointers to state variable data to FABM
@@ -132,7 +133,6 @@ contains
         call fabm_link_horizontal_data(model, standard_variables%mole_fraction_of_carbon_dioxide_in_air, pco2_atm)  !ppm
         call fabm_check_ready(model)
         
-        allocate(par_name(par_max))
         do i = 1, par_max
             par_name(i) = model%state_variables(i)%name
         end do
@@ -165,17 +165,14 @@ contains
         real(rk)    :: lat_light
         real(rk)    :: kc                       !attenuation constant for the self shading effect
         real(rk)    :: k_erlov                  !extinction coefficient
-        real(rk)    :: so4, mn4, fe3, caco3     !for values
         integer     :: freq_az                  !vert.turb. / bhc frequency
         integer     :: freq_sed                 !sinking / bhc frequency
         integer     :: last_day, model_year = 0
         
         real(rk) :: flux_sf(size(model%state_variables))
         !indexes of state variables
-        integer         :: i_O2, i_Mn2, i_Mn3, i_Mn4, i_H2S, i_Fe2, i_Fe3, i_FeS,   &
-                           i_MnS, i_DON, i_PON, i_NH4, i_NO2, i_NO3, i_S0, i_S2O3,  &
-                           i_SO4, i_DIC, i_Alk, i_PO4, i_Si, i_Sipart, i_Phy, i_Zoo,&
-                           i_Baae, i_Bhae, i_Baan, i_Bhan, i_Hplus, i_CaCO3, i_FeS2, i_MnCO3
+        integer         :: i_O2, i_Mn4, i_Fe3, i_DON, i_PON, i_NH4, i_NO2, i_NO3 &
+                           i_SO4, i_PO4, i_Si
             
         !getting parameters from brom.yaml
         lat_light   = get_brom_par("lat_light")
@@ -184,11 +181,7 @@ contains
         freq_az     = get_brom_par("freq_az")
         freq_sed    = get_brom_par("freq_sed ")
         last_day    = get_brom_par("last_day")
-        so4         = get_brom_par("bound(i_SO4)")
-        mn4         = get_brom_par("bound_up(i_Mn4)")
-        fe3         = get_brom_par("bound_up(i_Fe3)")
-        caco3       = get_brom_par("bound_low(i_CaCO3)")
-        
+
         i_O2        = find_index(par_name, 'niva_brom_redox_O2')              
         i_NO3       = find_index(par_name, 'niva_brom_redox_NO3')             
         i_NO2       = find_index(par_name, 'niva_brom_redox_NO2')            
@@ -197,30 +190,30 @@ contains
         i_PON       = find_index(par_name, 'niva_brom_redox_PON')            
         i_PO4       = find_index(par_name, 'niva_brom_redox_PO4')      
         i_Si        = find_index(par_name, 'niva_brom_redox_Si')      
-        i_Sipart    = find_index(par_name, 'niva_brom_redox_Sipart')          
         i_Mn4       = find_index(par_name, 'niva_brom_redox_Mn4')           
-        i_Mn2       = find_index(par_name, 'niva_brom_redox_Mn2')          
-        i_Mn3       = find_index(par_name, 'niva_brom_redox_Mn3')          
-        i_MnS       = find_index(par_name, 'niva_brom_redox_MnS')
-        i_MnCO3     = find_index(par_name, 'niva_brom_redox_MnCO3')       
         i_Fe3       = find_index(par_name, 'niva_brom_redox_Fe3')          
-        i_Fe2       = find_index(par_name, 'niva_brom_redox_Fe2')          
-        i_FeS       = find_index(par_name, 'niva_brom_redox_FeS')          
         i_SO4       = find_index(par_name, 'niva_brom_redox_SO4')          
-        i_S2O3      = find_index(par_name, 'niva_brom_redox_S2O3')          
-        i_S0        = find_index(par_name, 'niva_brom_redox_S0')           
-        i_H2S       = find_index(par_name, 'niva_brom_redox_H2S')         
-        i_Phy       = find_index(par_name, 'niva_brom_bio_Phy')          
-        i_Zoo       = find_index(par_name, 'niva_brom_bio_Het')          
-        i_Baae      = find_index(par_name, 'niva_brom_redox_Baae')           
-        i_Bhae      = find_index(par_name, 'niva_brom_redox_Bhae')          
-        i_Baan      = find_index(par_name, 'niva_brom_redox_Baan')          
-        i_Bhan      = find_index(par_name, 'niva_brom_redox_Bhan')          
-        i_DIC       = find_index(par_name, 'niva_brom_redox_DIC')          
-        i_Alk       = find_index(par_name, 'niva_brom_redox_Alk')          
-        i_Hplus     = find_index(par_name, 'niva_brom_redox_Hplus')          
-        i_CaCO3     = find_index(par_name, 'niva_brom_redox_CaCO3')          
-        i_FeS2      = find_index(par_name, 'niva_brom_redox_FeS2')
+        
+        !boudary conditions
+        if (i_SO4 /= -1 .and. get_brom_par("use_bound_up_SO4") /= 0) then
+            use_bound_up(i_SO4) = .true.
+            bound_up(i_SO4) = get_brom_par("bound_up_SO4")
+        end if
+        if (i_SO4 /= -1 .and. get_brom_par("use_bound_low_SO4") /= 0) then
+            use_bound_low(i_SO4) = .true.
+            bound_low(i_SO4) = get_brom_par("bound_low_SO4")
+        end if
+        if (i_Mn4/=-1 .and. get_brom_par("use_bound_up_Mn4") /= 0) then
+            use_bound_up(i_Mn4) = .true.
+            bound_up(i_Mn4) = get_brom_par("bound_up_Mn4")
+        end if
+        if (i_Fe3/=-1 .and. get_brom_par("use_bound_up_Fe3") /= 0) then
+            use_bound_up(i_Fe3) = .true.
+            bound_up(i_Fe3) = get_brom_par("bound_up_Fe3")
+        end if
+
+        !deallocate brom parameters
+        call close_brom_par()
         
         idt = int(1. / dt)                               !number of cycles per day
         
@@ -239,39 +232,17 @@ contains
             call fabm_link_bulk_data(model, standard_variables%practical_salinity, sal2(:, julianday))
             
             !boudary conditions
-            if (i_SO4 /= -1) then
-                use_bound_up(i_SO4) = .true.
-                bound_up(i_SO4) = so4
-                use_bound_low(i_SO4) = .true.
-                bound_low(i_SO4) = so4
-            end if
-            if (i_Mn4/=-1 .and. ice_area(julianday) < 0.6) then
-                use_bound_up(i_Mn4) = .true.
-                bound_up(i_Mn4) = mn4
-            end if
-            if (i_Fe3/=-1 .and. ice_area(julianday) < 0.6) then
-                use_bound_up(i_Fe3) = .true.
-                bound_up(i_Fe3) = fe3
-            end if
-            if (i_NO3 /= -1 .and. ice_area(julianday) < 0.6) then
+            if (i_NO3 /= -1) then
                 use_bound_up(i_NO3) = .true.
                 bound_up(i_NO3) = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 0.45! max 0.9 microM at day 205 approx.
             end if
-            if (i_PO4 /= -1 .and. ice_area(julianday) < 0.6) then
+            if (i_PO4 /= -1) then
                 use_bound_up(i_PO4) = .true.
                 bound_up(i_PO4) = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 0.07! max 0.14 microM at day 205 approx.
             end if
-            if (i_Si /= -1 .and. ice_area(julianday) < 0.6) then
+            if (i_Si /= -1) then
                 use_bound_up(i_Si)  = .true.
                 bound_up(i_Si)  = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 8.0! max 16 microM at day 205 approx.
-            end if
-            if (i_CaCO3 /= -1) then
-                use_bound_low(i_CaCO3) = .false.
-                bound_low(i_CaCO3) = caco3
-            end if
-            
-            if(julianday == 249) then
-                continue
             end if
             
             !ice algae processes calculated once per day is here, also recalculates io for bottom of ice layer
@@ -339,13 +310,7 @@ contains
                         cc(k, :) = cc(k, :) + (dt / freq_sed) * dcc(k, :) * 86400.
                     end do
                 end do
-
-                !for debug reason           
-                if (any(isnan(cc))) then
-                    stop
-                end if
             end do
-           
             !-------NETCDF-----------------------------------------------------------------------------------------    
             write (*,'(a, i4, a, i4)') " model year:", model_year, "; julianday:", julianday
             call netcdf_ice%save_netcdf_algae(ice_l, 1, number_of_layers, julianday, hice(julianday))
@@ -358,7 +323,6 @@ contains
                 call saving_state_variables_data(model_year, julianday, lev_max, par_max, par_name, z, cc)
             end if
             !---END-of-NETCDF--------------------------------------------------------------------------------------
-            
         end do
         
     end subroutine do_brom_transport
@@ -378,17 +342,26 @@ contains
         deallocate(iz)
         deallocate(density)
         deallocate(pressure)
+
         !allocated in io_netcdf
         deallocate(tem2)
         deallocate(sal2)
         deallocate(hice)
+        deallocate(ice_area)
+        deallocate(heat_flux)
+        deallocate(snow_thick)
+        deallocate(t_ice)
         deallocate(Kz2)
         deallocate(z)
         deallocate(dz)
         deallocate(kz_bio)
+
         !allocated in ice_algae
-        deallocate(ice_l)
-        
+        ice_l=>null()
+        netcdf_ice=>null()
+        netcdf_pelagic=>null()
+        netcdf_bottom=>null()
+
         write (*,'(a)') "finish"
     
     end subroutine clear_brom_transport

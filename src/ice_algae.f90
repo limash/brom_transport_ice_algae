@@ -58,9 +58,9 @@ module ice_algae_lib
     real(rk):: betta = 0. ![mg C mg Chl-1 h-1(microM photons m-2 s-1)-1]
 
     !half saturation constant for growth limited by nitrogen cell quota
-    real(rk), parameter:: kn_cell = 0.028 ![mg N mg C-1]
+    real(rk):: kn_cell = 0.028 ![mg N mg C-1]
     !half saturation constant for growth limited by phosphorus cell quota
-    real(rk), parameter:: kp_cell = 0.004 ![mg P mg C-1]
+    real(rk):: kp_cell = 0.004 ![mg P mg C-1]
 
     !reference temperature
     real(rk):: t_0 = 0.
@@ -68,19 +68,19 @@ module ice_algae_lib
     real(rk):: temp_aug_rate = 0.0663
     
     !maintenance respiration
-    real(rk), parameter:: r0 = 0.01 ![mmol o2 mg chl-1 h-1]
+    real(rk):: r0 = 0.01 ![mmol o2 mg chl-1 h-1]
     !linear coefficient of increase in biomass-specific dark respiration
     !with gross photosynthesis
-    real(rk), parameter:: r_dark = 0.3
+    real(rk):: r_dark = 0.3
     !ratio between respiration in the light and
     !respiration in the dark (dimensionless)
-    real(rk), parameter:: dl_ratio = 2.
+    real(rk):: dl_ratio = 2.
         
     !fraction exudated
-    real(rk), parameter:: exud_rate = 0.1
+    real(rk):: exud_rate = 0.1
 
     !algae mortality at temperature 0 C
-    real(rk), parameter:: phy_mort = 9.23e-5 ![h-1]
+    real(rk):: phy_mort = 9.23e-5 ![h-1]
 
     real(rk), dimension(5):: nh4_m, no2_m, no3_m
     real(rk), dimension(5):: po4_m
