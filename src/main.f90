@@ -2,7 +2,7 @@ program main
 
     use brom_transport, only: init_brom_transport, do_brom_transport, clear_brom_transport
 
-    !initializing, writing from gotm data and fabm.yaml included
+    !initializing
     call init_brom_transport()
 
     !main cycle
