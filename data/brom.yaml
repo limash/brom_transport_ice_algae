@@ -14,11 +14,14 @@ instances:
       wind_speed: 5.
       pco2_atm: 370.
 #-----------------------------------------------
-      bound(i_SO4): 25000.
-      bound_up(i_Mn4): 5.E-5
-      bound_up(i_Fe3): 1.E-4
-      bound_up(i_ALK): 2250.
-      bound_low(i_CaCO3): 6000
+      use_bound_up_SO4: 1                       # 0 - no, not 0 - yes
+      bound_up_SO4: 25000.
+      use_bound_low_SO4: 1
+      bound_low_SO4: 25000.
+      use_bound_up_Mn4: 1
+      bound_up_Mn4: 5.E-5
+      use_bound_up_Fe3: 1
+      bound_up_Fe3: 1.E-4
 #-----------------------------------------------
       lat_light: 70.
       kc: 0.03                                   # attenuation constant for the self shading effect

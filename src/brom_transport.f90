@@ -9,7 +9,7 @@ module brom_transport
     use ice_algae_lib
     
     implicit none
-    private
+
     public init_brom_transport, do_brom_transport, clear_brom_transport
 
     !FABM model
@@ -171,8 +171,8 @@ contains
         
         real(rk) :: flux_sf(size(model%state_variables))
         !indexes of state variables
-        integer         :: i_O2, i_Mn4, i_Fe3, i_DON, i_PON, i_NH4, i_NO2, i_NO3 &
-                           i_SO4, i_PO4, i_Si
+        integer  :: i_O2, i_Mn4, i_Fe3, i_DON, i_PON, i_NH4, i_NO2, i_NO3, &
+                 i_SO4, i_PO4, i_Si
             
         !getting parameters from brom.yaml
         lat_light   = get_brom_par("lat_light")
