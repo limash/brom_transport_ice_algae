@@ -4,6 +4,7 @@ module calculate
     
     implicit none
     private
+
     public calculate_phys, calculate_sed
     
 contains

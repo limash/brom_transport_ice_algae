@@ -9,6 +9,7 @@ module brom_transport
     use ice_algae_lib
     
     implicit none
+    private
 
     public init_brom_transport, do_brom_transport, clear_brom_transport
 
