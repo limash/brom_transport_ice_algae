@@ -32,40 +32,43 @@ module ice_algae_lib
     real(rk):: io_ice = 0.97    !fraction of rad transmitted through ice
 
     real(rk):: z_s = 0.03 !bottom layer width
-    real(rk):: p_b = 1.2 !maximum rate of photosynthesis (mg C mg Chl-1 h-1)
+    !maximum rate of photosynthesis (mg C mg Chl-1 h-1)
+    real(rk):: p_b = 1.2
     real(rk):: chl_to_carbon = 30. !conversion factor (mg C mg Chl-1)
     real(rk):: carbon_to_oxy = 0.375 !conversion factor (mg C mg o2-1)
     
     !vertical distance over which sea ice is influenced by gravity drainage
     real(rk):: z_conv = 1.        
-    real(rk):: gravity_drainage = 1.e-8! [m * s-1]
+    real(rk):: gravity_drainage = 1.e-8 ![m * s-1]
     
-    real(rk):: k_wi = 1.e-5! [m2 s-1] diffusion coef. between bottom layer and sea water
+    ![m2 s-1] diffusion coef. between bottom layer and sea water
+    real(rk):: k_wi = 1.e-5
+    real(rk):: v_max_n = 1.08![1/day] maximal uptake rate of nitrogen
+    ![microM N] half saturation constant for ammonium uptake
+    real(rk):: k_ammonium = 2.94
+    real(rk):: n_max = 0.53![mg N * mg C-1]
+    real(rk):: n_min = 0.1![mg N * mg C-1]
+    real(rk):: max_n_p = 291!max N/P in algae
+    ![microM N] half saturation constant for no2 and no3 uptake
+    real(rk):: k_nina = 30
 
-    real(rk):: v_max_n = 1.08! [1/day] maximal uptake rate of nitrogen
-    real(rk):: k_ammonium = 2.94! [microM N] half saturation constant for ammonium uptake
-    real(rk):: n_max = 0.53! [mg N * mg C-1]
-    real(rk):: n_min = 0.1! [mg N * mg C-1]
-    real(rk):: max_n_p = 291! max N/P in algae
-    real(rk):: k_nina = 30! [microM N] half saturation constant for no2 and no3 uptake
+    real(rk):: phos_min = 0.002![mg P mg C-1] minimum phosphorus cell quota
+    real(rk):: phos_max = 0.08![mg P mg C-1] maximum phosphorus cell quota
+    real(rk):: min_n_p = 4.!min N/P in algae
+    real(rk):: v_max_p = 1.08![d-1] maximal uptake rate of po4
+    real(rk):: k_p = 2.![microM P] half saturation constant for po4 uptake
 
-    real(rk):: phos_min = 0.002! [mg P mg C-1] minimum phosphorus cell quota
-    real(rk):: phos_max = 0.08! [mg P mg C-1] maximum phosphorus cell quota
-    real(rk):: min_n_p = 4.! min N/P in algae
-    real(rk):: v_max_p = 1.08! [d-1] maximal uptake rate of po4
-    real(rk):: k_p = 2.! [microM P] half saturation constant for po4 uptake
-
-    real(rk):: recruit = 0.01 !recruitment of algae on bottom
+    real(rk):: recruit = 0.01!recruitment of algae on bottom
 
     !initial slope or photosynthetic efficiency
-    real(rk):: alpha = 0.227 ![mg C mg Chl-1 microE m2s]
+    real(rk):: alpha = 0.227![mg C mg Chl-1 microE m2s]
     !degree of photoinhibition
-    real(rk):: betta = 0. ![mg C mg Chl-1 h-1(microM photons m-2 s-1)-1]
+    real(rk):: betta = 0.![mg C mg Chl-1 h-1(microM photons m-2 s-1)-1]
 
     !half saturation constant for growth limited by nitrogen cell quota
-    real(rk):: kn_cell = 0.028 ![mg N mg C-1]
+    real(rk):: kn_cell = 0.028![mg N mg C-1]
     !half saturation constant for growth limited by phosphorus cell quota
-    real(rk):: kp_cell = 0.004 ![mg P mg C-1]
+    real(rk):: kp_cell = 0.004![mg P mg C-1]
 
     !reference temperature
     real(rk):: t_0 = 0.
@@ -233,15 +236,16 @@ contains
     
     end function constructor_ice_layer
 
-    subroutine do_slow_ice(self, lvl, air_temp, water_temp, water_sal, ice_thickness, &
-                           io, snow_thick, julian_day, lat)
+    subroutine do_slow_ice(self, lvl, air_temp, water_temp, water_sal, &
+            ice_thickness, io, snow_thick, julian_day, lat)
     !subroutine for variables should be calculated once per day
         
         class(ice_layer):: self
-        integer,  intent(in) :: lvl
-        real(rk), intent(in) :: air_temp, water_temp, water_sal, ice_thickness
-        real(rk), intent(in) :: snow_thick, lat
-        integer,  intent(in) :: julian_day
+        integer,  intent(in):: lvl
+        real(rk), intent(in):: air_temp, water_temp
+        real(rk), intent(in):: water_sal, ice_thickness
+        real(rk), intent(in):: snow_thick, lat
+        integer,  intent(in):: julian_day
         real(rk), intent(inout):: io
         real(rk)               :: foo
         
@@ -297,11 +301,12 @@ contains
         
         call self%do_brine_relative_volume(lvl)
         
-        !here we will calculate the length of the day 
+        !calculate the length of the day 
         !depends on latitude and julianday
         foo = cos((julian_day + 10.) * 2. * 3.14159 / 365.25)
-        day_length = real(12. - 24./3.14159 * asin(tan(lat * 3.14159 / 180.) *&
-                     tan(23.5 * 3.14159 / 180.) * foo))
+        day_length = real(12. - 24./3.14159 * &
+            asin(tan(lat * 3.14159 / 180.) * &
+            tan(23.5 * 3.14159 / 180.) * foo))
         !to fix complex values
         if (isnan(day_length) .and. foo > 0) day_length = 0.
         if (isnan(day_length) .and. foo < 0) day_length = 24.
@@ -327,7 +332,7 @@ contains
         end if
         
         !calculate fluxes of nutrients in ice
-        !processes rates are per day inside procedure
+        !process rates are per day inside procedure
         call self%do_nitrogen(lvl, nh4, no2, no3)
 
         self%nh4 = self%nh4 + self%d_nh4 * dt
@@ -339,7 +344,7 @@ contains
         self%no3 = self%no3 + self%d_no3 * dt
         no3_m(lvl) = no3_m(lvl) + self%d_no3 * dt
 
-        !processes rates are per day inside procedure
+        !process rates are per day inside procedure
         call self%do_phosphorus(lvl, po4)
         self%po4 = self%po4 + self%d_po4 * dt
         po4_m(lvl) = po4_m(lvl) + self%d_po4 * dt
@@ -347,11 +352,11 @@ contains
         if (lvl == 2) then
             nh4_m(lvl - 1) = nh4_m(lvl)
             no2_m(lvl - 1) = no2_m(lvl)
-            no3_m(lvl - 1) = nh4_m(lvl)
+            no3_m(lvl - 1) = no3_m(lvl)
             po4_m(lvl - 1) = po4_m(lvl)
         end if
         
-        !processes rates are per hour inside procedure
+        !process rates are per hour inside procedure
         call self%do_a_carbon(lvl)
         self%a_carbon = self%a_carbon + self%d_a_carbon * dt * 24.
         call self%do_a_nitrogen(lvl)
