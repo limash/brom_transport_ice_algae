@@ -43,11 +43,11 @@ set(FABM_LIBRARIES fabm)
 set(FABM_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/fabm/modules)
 
 add_executable(brom WIN32
-               calculate.f90
-               io_netcdf.f90
-               main.f90
-               io_ascii.f90
-               brom_transport.f90
+               calculate.F90
+               io_netcdf.F90
+               main.F90
+               io_ascii.F90
+               brom_transport.F90
                ice_algae.F90)
 set_property(TARGET brom APPEND PROPERTY INCLUDE_DIRECTORIES "${FABM_INCLUDE_DIRS}")
 set_property(TARGET brom APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${FABM_INCLUDE_DIRS}")
