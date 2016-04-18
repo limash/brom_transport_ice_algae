@@ -80,7 +80,6 @@ contains
         dt                      = get_brom_par("dt")
         wind_speed              = get_brom_par("wind_speed")
         pco2_atm                = get_brom_par("pco2_atm")
-        number_of_layers        = get_brom_par("number_of_layers")
         
         !input_netcdf, kz2 - AKs
         !hice -  "time-averaged average ice thickness in cell", also generates grid according to input data

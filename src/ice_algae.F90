@@ -24,6 +24,7 @@ module ice_algae_lib
     real(rk):: day_length
     real(rk):: prev_ice_thickness
     real(rk):: ice_growth
+    real(rk):: a_b !algae position
 
     real(rk):: alb_ice = 0.744  !ice albedo
     real(rk):: alb_snow = 0.9   !snow albedo
@@ -141,6 +142,7 @@ module ice_algae_lib
         procedure, public:: get_algae
         procedure:: do_grid
         procedure:: do_par
+        procedure:: do_transport
         procedure:: do_bulk_temperature
         procedure:: do_bulk_salinity
         procedure:: do_brine_salinity
@@ -185,12 +187,12 @@ module ice_algae_lib
     
 contains
     
-    function constructor_ice_layer(number_of_layers_in)
+    function constructor_ice_layer(number_of_layers_out)
     
         type(ice_layer), dimension(:), pointer:: constructor_ice_layer
-        integer, intent(in):: number_of_layers_in
+        integer, intent(out):: number_of_layers_out
         
-        !number_of_layers = number_of_layers_in
+        number_of_layers_out = number_of_layers
         allocate(constructor_ice_layer(number_of_layers))
         nh4_m = 0.
         no2_m = 0.
@@ -233,7 +235,8 @@ contains
         constructor_ice_layer%last_mort = 0.
 
         prev_ice_thickness = 0.5 !only for first circle, 31 dec - 0.5m
-    
+        a_b = 0.
+
     end function constructor_ice_layer
 
     subroutine do_slow_ice(self, lvl, air_temp, water_temp, water_sal, &
@@ -283,6 +286,9 @@ contains
             self%last_gpp = 0.
             self%last_f_t = 0.
             self%last_mort = 0.
+            a_b = 0.
+            ice_growth = 0.
+            prev_ice_thickness = 0.
             return
         end if
     
@@ -290,6 +296,8 @@ contains
         
         call self%do_par(lvl, io, snow_thick)
         
+        call self%do_transport(lvl, ice_thickness)
+
         call self%do_bulk_temperature(air_temp, water_temp, ice_thickness)
         self%brine_temperature = self%bulk_temperature
         
@@ -451,6 +459,28 @@ contains
         if (lvl == number_of_layers) io = 4.6 * self%par_z
         
     end subroutine do_par
+
+    subroutine do_transport(self, lvl, ice_thickness)
+    !evaluate transport of algae
+    !caused by freezing/melting
+
+        class(ice_layer):: self
+        integer, intent(in):: lvl
+        real(rk), intent(in):: ice_thickness
+        real(rk):: non_b_layers, delta
+
+        !for initializing algae position after summer for example
+        if ((lvl == number_of_layers) .and. a_b == 0.) a_b = self.z
+        !in case of melting
+        if ((lvl == number_of_layers) .and. a_b > self.z) a_b = self.z
+
+        delta = ice_thickness - prev_ice_thickness
+
+        if (delta > 0) then
+            if (a_b <= self.z) then
+                d_algae = 
+
+    end subroutine do_transport
     
     subroutine do_bulk_temperature(self, air_temp, water_temp, ice_thickness)
     ![C]

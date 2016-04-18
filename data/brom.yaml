@@ -31,5 +31,3 @@ instances:
       freq_sed: 1                                # sinking / bhc frequency
       last_day: 365
       year: 2008                                 # year(between 1981 and 2012)
-#-----------------------------------------------
-      number_of_layers: 5                        # number of layers in ice
