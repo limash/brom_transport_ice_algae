@@ -247,7 +247,8 @@ contains
             
             !ice algae processes calculated once per day is here, also recalculates io for bottom of ice layer
             !it's important to iterate from up to down since io rewrites itself on bottom layer
-            do k = 1, number_of_layers
+            !do k = 1, number_of_layers
+            do k = number_of_layers, 1, -1
                 call ice_l(k)%do_slow_ice(k, t_ice(julianday), tem2(1, julianday), sal2(1, julianday), &
                                    hice(julianday), io, snow_thick(julianday), julianday, lat_light)
             end do
