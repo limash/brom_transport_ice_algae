@@ -24,7 +24,10 @@ module ice_algae_lib
     real(rk):: day_length
     real(rk):: prev_ice_thickness
     real(rk):: ice_growth
+    real(rk):: ice_growth_temp
     real(rk):: a_b !algae position
+    logical:: trigger !ice control
+    logical:: trigger_melting !melting control
 
     real(rk):: alb_ice = 0.744  !ice albedo
     real(rk):: alb_snow = 0.9   !snow albedo
@@ -202,9 +205,9 @@ contains
         no3_m = 0.
         po4_m = 0.
         dz_m = 0.
-        a_carbon_m = 0._rk
-        a_nitrogen_m = 0._rk
-        a_phosphorus_m = 0._rk
+        a_carbon_m = 0.
+        a_nitrogen_m = 0.
+        a_phosphorus_m = 0.
 
         constructor_ice_layer%z = 0.
         constructor_ice_layer%par_z = 0.
@@ -243,10 +246,13 @@ contains
         prev_ice_thickness = 0.5 !only for first circle, 31 dec - 0.5m
         a_b = 0.
 
+        trigger = .false.
+        trigger_melting = .false.
+
     end function constructor_ice_layer
 
     subroutine do_slow_ice(self, lvl, air_temp, water_temp, water_sal, &
-            ice_thickness, io, snow_thick, julian_day, lat)
+            ice_thickness, io, io_ice, snow_thick, julian_day, lat, da_c)
     !subroutine for variables should be calculated once per day
         
         class(ice_layer):: self
@@ -256,6 +262,8 @@ contains
         real(rk), intent(in):: snow_thick, lat
         integer,  intent(in):: julian_day
         real(rk), intent(inout):: io
+        real(rk), intent(out)  :: io_ice
+        real(rk), intent(out)  :: da_c
         real(rk)               :: foo
         
         if (ice_thickness < 0.2) then
@@ -286,30 +294,35 @@ contains
             self%po4 = 0.
             self%d_po4 = 0.
 
-            nh4_m = 0.
-            no2_m = 0.
-            no3_m = 0.
-            po4_m = 0.
-            dz_m = 0.
-            a_carbon_m = 0._rk
-            a_nitrogen_m = 0._rk
-            a_phosphorus_m = 0._rk
-
             self%brine_relative_volume = 0.
 
             self%last_v_ammonium = 0.
             self%last_gpp = 0.
             self%last_f_t = 0.
             self%last_mort = 0.
-            a_b = 0._rk
+
+            nh4_m = 0.
+            no2_m = 0.
+            no3_m = 0.
+            po4_m = 0.
+            dz_m = 0.
+            a_carbon_m = 0.
+            a_nitrogen_m = 0.
+            a_phosphorus_m = 0.
+
+            a_b = 0.
             ice_growth = 0.
             prev_ice_thickness = 0.
+
+            io_ice = io
+            da_c = 0.
+
             return
         end if
     
         call self%do_grid(lvl, ice_thickness)
         
-        call self%do_par(lvl, io, snow_thick)
+        call self%do_par(lvl, io, io_ice, snow_thick)
         
         call self%do_bulk_temperature(air_temp, water_temp, ice_thickness)
         self%brine_temperature = self%bulk_temperature
@@ -333,13 +346,17 @@ contains
         if (isnan(day_length) .and. foo < 0) day_length = 24.
 
         !ice_growth/melting calculation
-        if (trigger = .false.) then
+        if (trigger .eqv. .false.) then
             ice_growth = ice_thickness - prev_ice_thickness
             prev_ice_thickness = ice_thickness
-            ice_growth_temp = ice_growth
             trigger = .true.
         end if
-        call self%do_transport(lvl, ice_growth_temp)
+
+        ice_growth_temp = ice_growth
+        call self%do_transport(lvl, ice_growth_temp, da_c)
+
+        if (lvl == 1) trigger = .false.
+        if (lvl == 1) trigger_melting = .false.
 
         
     end subroutine do_slow_ice
@@ -450,7 +467,7 @@ contains
         
     end subroutine do_grid
     
-    subroutine do_par(self, lvl, io, snow_thick)
+    subroutine do_par(self, lvl, io, io_ice, snow_thick)
     !io in Watts, to calculate it in micromoles photons per m2*s =>
     !=> [w] = 4.6*[micromole photons]
     !calculates irradiance par_z
@@ -463,6 +480,7 @@ contains
         integer,  intent(in)    :: lvl
         real(rk), intent(in)    :: snow_thick
         real(rk), intent(inout) :: io
+        real(rk), intent(out)   :: io_ice
         real(rk)                :: io_e             !io in micromoles
         real(rk)                :: par_alb, par_scat
         
@@ -476,34 +494,41 @@ contains
         par_scat = par_alb * io_ice !after scattered surface of ice
         self%par_z = par_scat * exp(-k_ice * self%z)
 
-        if (lvl == number_of_layers) io = 4.6 * self%par_z
+        if (lvl == number_of_layers) then
+            io_ice = 4.6 * self%par_z
+        else
+            io_ice = -1.
+        end if
         
     end subroutine do_par
 
-    subroutine do_transport(self, lvl, ice_growth_temp)
+    subroutine do_transport(self, lvl, ice_growth_temp_in, da_c)
     !evaluate transport of the algae
     !caused by freezing/melting
 
         class(ice_layer):: self
         integer, intent(in):: lvl
-        real(rk), intent(out):: da_c, da_n, da_p
-        real(rk):: ice_growth_temp
-        real(rk):: delta1, delta2
-        integer:: i, m
+        real(rk), intent(in):: ice_growth_temp_in
+        real(rk), intent(out):: da_c
 
-        da_c = 0._rk
-        da_n = 0._rk
-        da_p = 0._rk
+        real(rk):: delta1, delta2, cache
+        real(rk):: ice_growth_temp
+        integer:: i, m, k
+
+        ice_growth_temp = ice_growth_temp_in
+        da_c = 0.
 
         !for initializing algae position after summer for example
-        if ((lvl == number_of_layers - 1) .and. a_b == 0._rk) a_b = self.z
+        if ((lvl == (number_of_layers - 1)) .and. a_b == 0.) then
+            a_b = self%z
+        end if
 
-        if (ice_growth_temp > 0._rk .and. lvl /= number_of_layers) then
-            if (a_b >= self.z) then
+        if (ice_growth_temp > 0. .and. lvl /= number_of_layers) then
+            if (a_b >= self%z) then
                 return
             else
-                delta1 = self.z - a_b
-                delta2 = max(1._rk, delta1 / dz_m(lvl+1)) !part of the lower layer
+                delta1 = self%z - a_b
+                delta2 = max(1., delta1 / dz_m(lvl+1)) !part of the lower layer
                 a_carbon_m(lvl) = a_carbon_m(lvl) + delta2 * a_carbon_m(lvl+1)
                 a_carbon_m(lvl+1) = a_carbon_m(lvl+1) -&
                     delta2 * a_carbon_m(lvl+1)
@@ -514,12 +539,12 @@ contains
                 a_phosphorus_m(lvl+1) = a_phosphorus_m(lvl+1) -&
                     delta2 * a_phosphorus_m(lvl+1)
             end if
-        else if(ice_growth_temp < 0._rk) then
+        else if(ice_growth_temp < 0. .and. (trigger_melting .eqv. .false.)) then
             if (abs(ice_growth_temp) > dz_m(lvl)) then
                 i = lvl
-                do while (abs(ice_growth_temp) > dz_m(i)) then
+                do while (abs(ice_growth_temp) > dz_m(i))
                     da_c = da_c + a_carbon_m(i)
-                    a_carbon_m(i) = 0._rk
+                    a_carbon_m(i) = 0.
                     ice_growth_temp = ice_growth_temp + dz_m(i)
                     i = i - 1
                 end do
@@ -535,7 +560,7 @@ contains
                     m = 0
                     do k = i, 1, -1
                         a_carbon_m(lvl-m) = a_carbon_m(i)
-                        a_carbon_m(i) = 0._rk
+                        a_carbon_m(i) = 0.
                         m = m + 1
                     end do
                 else
@@ -568,7 +593,7 @@ contains
                 delta1 = ice_growth_temp/dz_m(lvl)
                 da_c = da_c + delta1*a_carbon_m(lvl)
                 a_carbon_m(lvl) = &
-                    a_carbon_m(lvl) - a_carbon(lvl)*delta1
+                    a_carbon_m(lvl) - a_carbon_m(lvl)*delta1
                 do i = lvl, 2, -1
                     a_carbon_m(i) = &
                         a_carbon_m(i) + a_carbon_m(i-1)*&
@@ -577,8 +602,9 @@ contains
                         a_carbon_m(i-1) - a_carbon_m(i-1)*&
                         ice_growth_temp/dz_m(i-1)
                 end do
-                ice_growth_temp = 0._rk
             end if
+            ice_growth_temp = 0.
+            trigger_melting = .true.
         else
             return
         end if

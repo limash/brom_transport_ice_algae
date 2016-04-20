@@ -22,6 +22,7 @@ module brom_transport
     !some variables
     real(rk) :: dt !time step in [day/iteration]
     real(rk) :: io !io is surface irradiance
+    real(rk) :: io_ice, io_temp !variables linked to ice
     real(rk) :: wind_speed
     real(rk) :: pco2_atm
     !parameters for grid
@@ -165,6 +166,7 @@ contains
         real(rk)    :: lat_light
         real(rk)    :: kc                       !attenuation constant for the self shading effect
         real(rk)    :: k_erlov                  !extinction coefficient
+        real(rk)    :: da_c = 0.                !dead algae
         integer     :: freq_az                  !vert.turb. / bhc frequency
         integer     :: freq_sed                 !sinking / bhc frequency
         integer     :: last_day, model_year = 0
@@ -250,8 +252,15 @@ contains
             !do k = 1, number_of_layers
             do k = number_of_layers, 1, -1
                 call ice_l(k)%do_slow_ice(k, t_ice(julianday), tem2(1, julianday), sal2(1, julianday), &
-                                   hice(julianday), io, snow_thick(julianday), julianday, lat_light)
+                                   hice(julianday), io, io_ice, snow_thick(julianday), julianday, lat_light, &
+                                   da_c)
+                if (io_ice /= -1.) io_temp = io_ice
+                da_c = da_c + da_c
             end do
+
+            !initial value in case of no ice
+            !or value for bottom ice layer
+            io = io_temp
 
             !compute irradiance at depth
             do k = 1, lev_max
@@ -324,6 +333,7 @@ contains
                 call saving_state_variables_data(model_year, julianday, lev_max, par_max, par_name, z, cc)
             end if
             !---END-of-NETCDF--------------------------------------------------------------------------------------
+            da_c = 0.
         end do
         
     end subroutine do_brom_transport
