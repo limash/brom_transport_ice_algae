@@ -13,10 +13,11 @@ contains
                             surf_flux, boundary_bbl_sediments, kz2, julianday, kz_bio, i_O2, dz, freq_az, &
                             dcc, fick)
    
+        
+        integer, intent(in)                                 :: lev_max
+        integer, intent(in)                                 :: par_max
         real(rk), dimension(lev_max, par_max), intent(inout):: dcc, fick
         real(rk), dimension(:, :), intent(inout)          :: cc
-        integer, intent(in)                               :: lev_max
-        integer, intent(in)                               :: par_max
         logical, dimension(:), intent(in)                 :: use_bound_up, use_bound_low
         real(rk), dimension(:), intent(in)                :: surf_flux, bound_up, bound_low
         integer, intent(in)                               :: boundary_bbl_sediments

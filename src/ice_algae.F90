@@ -33,7 +33,7 @@ module ice_algae_lib
     real(rk):: alb_snow = 0.9   !snow albedo
     real(rk):: k_ice = 0.930    !extinction coeff. for ice m-1
     real(rk):: k_snow = 4.3     !extinction coeff. for snow m-1
-    real(rk):: io_ice = 0.97    !fraction of rad transmitted through ice
+    real(rk):: io_ice_par = 0.97    !fraction of rad transmitted through ice
 
     real(rk):: z_s = 0.03 !bottom layer width
     !maximum rate of photosynthesis (mg C mg Chl-1 h-1)
@@ -467,7 +467,7 @@ contains
         
     end subroutine do_grid
     
-    subroutine do_par(self, lvl, io, io_ice, snow_thick)
+    subroutine do_par(self, lvl, io, io_ice_var, snow_thick)
     !io in Watts, to calculate it in micromoles photons per m2*s =>
     !=> [w] = 4.6*[micromole photons]
     !calculates irradiance par_z
@@ -480,7 +480,7 @@ contains
         integer,  intent(in)    :: lvl
         real(rk), intent(in)    :: snow_thick
         real(rk), intent(in)    :: io
-        real(rk), intent(out)   :: io_ice
+        real(rk), intent(out)   :: io_ice_var
         real(rk)                :: io_e             !io in micromoles
         real(rk)                :: par_alb, par_scat
         
@@ -491,13 +491,13 @@ contains
         !    par_alb = io_e * (1. - alb_snow) * exp(-k_snow * snow_thick)
         !end if
         
-        par_scat = par_alb * io_ice !after scattered surface of ice
+        par_scat = par_alb * io_ice_par !after scattered surface of ice
         self%par_z = par_scat * exp(-k_ice * self%z)
 
         if (lvl == number_of_layers) then
-            io_ice = 4.6 * self%par_z
+            io_ice_var = 4.6 * self%par_z
         else
-            io_ice = -1.
+            io_ice_var = -1.
         end if
         
     end subroutine do_par
