@@ -228,6 +228,7 @@ contains
             
             !compute surface irradiance
             io = max(0., 80. * cos((lat_light - (23.5 * sin(2. * 3.14 * (julianday - 81.) /365.))) * 3.14 / 180.)) !W m-2
+            io_temp = io
             
             !resend data that depend on julianday to FABM
             call fabm_link_bulk_data(model, standard_variables%temperature, tem2(:, julianday))
@@ -247,13 +248,13 @@ contains
                 bound_up(i_Si)  = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 8.0! max 16 microM at day 205 approx.
             end if
             
-            !ice algae processes calculated once per day is here, also recalculates io for bottom of ice layer
-            !it's important to iterate from up to down since io rewrites itself on bottom layer
-            !do k = 1, number_of_layers
+            !ice algae processes calculated once per day is here,
+            !also recalculates io for bottom of ice layer
             do k = number_of_layers, 1, -1
-                call ice_l(k)%do_slow_ice(k, t_ice(julianday), tem2(1, julianday), sal2(1, julianday), &
-                                   hice(julianday), io, io_ice, snow_thick(julianday), julianday, lat_light, &
-                                   da_c)
+                call ice_l(k)%do_slow_ice(k, t_ice(julianday), &
+                    tem2(1, julianday), sal2(1, julianday), hice(julianday), &
+                    io, io_ice, snow_thick(julianday), julianday, lat_light, &
+                    da_c)
                 if (io_ice /= -1.) io_temp = io_ice
                 da_c = da_c + da_c
             end do
@@ -261,6 +262,9 @@ contains
             !initial value in case of no ice
             !or value for bottom ice layer
             io = io_temp
+            if (io < -0.1) then
+                continue
+            end if
 
             !compute irradiance at depth
             do k = 1, lev_max

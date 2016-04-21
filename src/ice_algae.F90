@@ -261,7 +261,7 @@ contains
         real(rk), intent(in):: water_sal, ice_thickness
         real(rk), intent(in):: snow_thick, lat
         integer,  intent(in):: julian_day
-        real(rk), intent(inout):: io
+        real(rk), intent(in):: io
         real(rk), intent(out)  :: io_ice
         real(rk), intent(out)  :: da_c
         real(rk)               :: foo
@@ -479,7 +479,7 @@ contains
         class(ice_layer):: self
         integer,  intent(in)    :: lvl
         real(rk), intent(in)    :: snow_thick
-        real(rk), intent(inout) :: io
+        real(rk), intent(in)    :: io
         real(rk), intent(out)   :: io_ice
         real(rk)                :: io_e             !io in micromoles
         real(rk)                :: par_alb, par_scat
