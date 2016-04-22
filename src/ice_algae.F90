@@ -146,6 +146,7 @@ module ice_algae_lib
         procedure, public:: do_slow_ice
         procedure, public:: do_ice
         procedure, public:: get_algae
+        procedure, public:: rewrite_algae
         procedure:: do_grid
         procedure:: do_par
         procedure:: do_transport
@@ -442,6 +443,16 @@ contains
         brine_relative_volume = self%brine_relative_volume
     
     end subroutine get_algae
+
+    subroutine rewrite_algae(self, lvl)
+    !rewrites algae layers
+
+        class(ice_layer):: self
+        integer, intent(in):: lvl
+
+        self%a_carbon = a_carbon_m(lvl)
+
+    end subroutine rewrite_algae
     
     subroutine do_grid(self, lvl, hice)
     !it makes grid, bottom layer is on lower edge of ice and equals 3 cm
@@ -532,10 +543,12 @@ contains
                 a_carbon_m(lvl) = a_carbon_m(lvl) + delta2 * a_carbon_m(lvl+1)
                 a_carbon_m(lvl+1) = a_carbon_m(lvl+1) -&
                     delta2 * a_carbon_m(lvl+1)
-                a_nitrogen_m(lvl) = a_nitrogen_m(lvl) + delta2 * a_nitrogen_m(lvl+1)
+                a_nitrogen_m(lvl) = a_nitrogen_m(lvl) +&
+                    delta2 * a_nitrogen_m(lvl+1)
                 a_nitrogen_m(lvl+1) = a_nitrogen_m(lvl+1) -&
                     delta2 * a_nitrogen_m(lvl+1)
-                a_phosphorus_m(lvl) = a_phosphorus_m(lvl) + delta2 * a_phosphorus_m(lvl+1)
+                a_phosphorus_m(lvl) = a_phosphorus_m(lvl) +&
+                    delta2 * a_phosphorus_m(lvl+1)
                 a_phosphorus_m(lvl+1) = a_phosphorus_m(lvl+1) -&
                     delta2 * a_phosphorus_m(lvl+1)
             end if
@@ -556,7 +569,7 @@ contains
                 delta2 = dz_m(i) - ice_growth_temp
                 cache = delta2 - dz_m(lvl)
                 if (dz_m(lvl) >= delta2) then
-!write to bottom
+                !write to bottom
                     m = 0
                     do k = i, 1, -1
                         a_carbon_m(lvl-m) = a_carbon_m(i)

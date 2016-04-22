@@ -258,13 +258,14 @@ contains
                 if (io_ice /= -1.) io_temp = io_ice
                 da_c = da_c + da_c
             end do
+            !get recalculated algae
+            do k = number_of_layers, 1, -1
+                call ice_l(k)%rewrite_algae(k)
+            end do
 
             !initial value in case of no ice
             !or value for bottom ice layer
             io = io_temp
-            if (io < -0.1) then
-                continue
-            end if
 
             !compute irradiance at depth
             do k = 1, lev_max
