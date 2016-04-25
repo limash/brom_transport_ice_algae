@@ -248,6 +248,10 @@ contains
                 bound_up(i_Si)  = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 8.0! max 16 microM at day 205 approx.
             end if
             
+            !get algae
+            do k = number_of_layers, 1, -1
+                call ice_l(k)%rewrite_algae(k, 0)
+            end do
             !ice algae processes calculated once per day is here,
             !also recalculates io for bottom of ice layer
             do k = number_of_layers, 1, -1
@@ -260,7 +264,7 @@ contains
             end do
             !get recalculated algae
             do k = number_of_layers, 1, -1
-                call ice_l(k)%rewrite_algae(k)
+                call ice_l(k)%rewrite_algae(k, 1)
             end do
 
             !initial value in case of no ice

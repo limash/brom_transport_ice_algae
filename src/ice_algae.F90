@@ -444,14 +444,19 @@ contains
     
     end subroutine get_algae
 
-    subroutine rewrite_algae(self, lvl)
+    subroutine rewrite_algae(self, lvl, befor_after)
     !rewrites algae layers
 
         class(ice_layer):: self
         integer, intent(in):: lvl
-
-        self%a_carbon = a_carbon_m(lvl)
-
+        integer, intent(in):: befor_after
+        
+        if (befor_after == 0) then
+            a_carbon_m(lvl) = self%a_carbon
+        else
+            self%a_carbon = a_carbon_m(lvl)
+        end if
+        
     end subroutine rewrite_algae
     
     subroutine do_grid(self, lvl, hice)
