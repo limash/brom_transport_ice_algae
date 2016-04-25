@@ -257,9 +257,12 @@ contains
             do k = number_of_layers, 1, -1
                 call ice_l(k)%do_slow_ice(k, t_ice(julianday), &
                     tem2(1, julianday), sal2(1, julianday), hice(julianday), &
-                    io, io_ice, snow_thick(julianday), julianday, lat_light, &
-                    da_c)
+                    io, io_ice, snow_thick(julianday), julianday, lat_light)
                 if (io_ice /= -1.) io_temp = io_ice
+            end do
+            !recalculate algae
+            do k = number_of_layers, 1, -1
+                call ice_l(k)%do_rec_algae(k, hice(julianday), da_c)
                 da_c = da_c + da_c
             end do
             !get recalculated algae

@@ -96,7 +96,7 @@ module ice_algae_lib
 
     real(rk), dimension(NUMBER_OF_LAYERS_IN_ICE):: nh4_m, no2_m, no3_m
     real(rk), dimension(NUMBER_OF_LAYERS_IN_ICE):: po4_m
-    real(rk), dimension(NUMBER_OF_LAYERS_IN_ICE):: dz_m
+    real(rk), dimension(NUMBER_OF_LAYERS_IN_ICE):: dz_m, z_m
     real(rk), dimension(NUMBER_OF_LAYERS_IN_ICE):: a_carbon_m
     real(rk), dimension(NUMBER_OF_LAYERS_IN_ICE):: a_nitrogen_m
     real(rk), dimension(NUMBER_OF_LAYERS_IN_ICE):: a_phosphorus_m
@@ -147,6 +147,7 @@ module ice_algae_lib
         procedure, public:: do_ice
         procedure, public:: get_algae
         procedure, public:: rewrite_algae
+        procedure, public:: do_rec_algae
         procedure:: do_grid
         procedure:: do_par
         procedure:: do_transport
@@ -206,6 +207,7 @@ contains
         no3_m = 0.
         po4_m = 0.
         dz_m = 0.
+        z_m = 0.
         a_carbon_m = 0.
         a_nitrogen_m = 0.
         a_phosphorus_m = 0.
@@ -253,7 +255,7 @@ contains
     end function constructor_ice_layer
 
     subroutine do_slow_ice(self, lvl, air_temp, water_temp, water_sal, &
-            ice_thickness, io, io_ice, snow_thick, julian_day, lat, da_c)
+            ice_thickness, io, io_ice, snow_thick, julian_day, lat)
     !subroutine for variables should be calculated once per day
         
         class(ice_layer):: self
@@ -264,7 +266,6 @@ contains
         integer,  intent(in):: julian_day
         real(rk), intent(in):: io
         real(rk), intent(out)  :: io_ice
-        real(rk), intent(out)  :: da_c
         real(rk)               :: foo
         
         if (ice_thickness < 0.2) then
@@ -307,6 +308,7 @@ contains
             no3_m = 0.
             po4_m = 0.
             dz_m = 0.
+            z_m = 0.
             a_carbon_m = 0.
             a_nitrogen_m = 0.
             a_phosphorus_m = 0.
@@ -316,7 +318,6 @@ contains
             prev_ice_thickness = 0.
 
             io_ice = io
-            da_c = 0.
 
             return
         end if
@@ -345,6 +346,15 @@ contains
         !to fix complex values
         if (isnan(day_length) .and. foo > 0) day_length = 0.
         if (isnan(day_length) .and. foo < 0) day_length = 24.
+        
+    end subroutine do_slow_ice
+    
+    subroutine do_rec_algae(self, lvl, ice_thickness, da_c)
+    
+        class(ice_layer):: self
+        integer,  intent(in):: lvl
+        real(rk), intent(in):: ice_thickness
+        real(rk), intent(out)  :: da_c
 
         !ice_growth/melting calculation
         if (trigger .eqv. .false.) then
@@ -353,14 +363,14 @@ contains
             trigger = .true.
         end if
 
+        if (lvl == 1) trigger = .false.
+        
         ice_growth_temp = ice_growth
         call self%do_transport(lvl, ice_growth_temp, da_c)
-
-        if (lvl == 1) trigger = .false.
-        if (lvl == 1) trigger_melting = .false.
-
         
-    end subroutine do_slow_ice
+        if (lvl == 1) trigger_melting = .false.
+    
+    end subroutine do_rec_algae
     
     subroutine do_ice(self, lvl, nh4, no2, no3, po4, dt, ice_thickness)
     
@@ -475,9 +485,11 @@ contains
         delta = (hice - z_s) / non_b_layers
         if (lvl == number_of_layers) then
             self%z = hice
+            z_m(lvl) = self%z
             dz_m(lvl) = z_s
         else
-            self%z = lvl * delta 
+            self%z = lvl * delta
+            z_m(lvl) = self%z
             dz_m(lvl) = delta
         end if
         
@@ -527,7 +539,7 @@ contains
         real(rk), intent(in):: ice_growth_temp_in
         real(rk), intent(out):: da_c
 
-        real(rk):: delta1, delta2, cache
+        real(rk):: delta0, delta1, delta2, cache
         real(rk):: ice_growth_temp
         integer:: i, m, k
 
@@ -544,26 +556,26 @@ contains
                 return
             else
                 delta1 = self%z - a_b
-                delta2 = max(1., delta1 / dz_m(lvl+1)) !part of the lower layer
+                delta2 = min(1., delta1 / dz_m(lvl+1)) !part of the lower layer
                 a_carbon_m(lvl) = a_carbon_m(lvl) + delta2 * a_carbon_m(lvl+1)
                 a_carbon_m(lvl+1) = a_carbon_m(lvl+1) -&
                     delta2 * a_carbon_m(lvl+1)
-                a_nitrogen_m(lvl) = a_nitrogen_m(lvl) +&
-                    delta2 * a_nitrogen_m(lvl+1)
-                a_nitrogen_m(lvl+1) = a_nitrogen_m(lvl+1) -&
-                    delta2 * a_nitrogen_m(lvl+1)
-                a_phosphorus_m(lvl) = a_phosphorus_m(lvl) +&
-                    delta2 * a_phosphorus_m(lvl+1)
-                a_phosphorus_m(lvl+1) = a_phosphorus_m(lvl+1) -&
-                    delta2 * a_phosphorus_m(lvl+1)
             end if
         else if(ice_growth_temp < 0. .and. (trigger_melting .eqv. .false.)) then
-            if (abs(ice_growth_temp) > dz_m(lvl)) then
+            ice_growth_temp = abs(ice_growth_temp)
+            delta0 = z_m(lvl) - ice_growth_temp
+            if (delta0 < a_b) then
+                do k = lvl, 1, -1
+                    da_c = da_c + a_carbon_m(k)
+                    a_carbon_m(k) = 0.
+                end do
+                a_b = delta0
+            else if (delta0 > a_b .and. ice_growth_temp > dz_m(lvl)) then
                 i = lvl
-                do while (abs(ice_growth_temp) > dz_m(i))
+                do while (ice_growth_temp > dz_m(i))
                     da_c = da_c + a_carbon_m(i)
                     a_carbon_m(i) = 0.
-                    ice_growth_temp = ice_growth_temp + dz_m(i)
+                    ice_growth_temp = ice_growth_temp - dz_m(i)
                     i = i - 1
                 end do
                 delta1 = ice_growth_temp/dz_m(i)
@@ -586,22 +598,22 @@ contains
                     do k = i, 2, -1
                         if (i == k) then
                             a_carbon_m(lvl-m) = a_carbon_m(lvl-m)+&
-                                a_carbon_m(i)*dz_m(lvl-m)/delta2
-                            if (lvl-m-1 == i) then
-                                a_carbon_m(lvl-m-1) = a_carbon_m(i)*cache/delta2
+                                a_carbon_m(k)*dz_m(lvl-m)/delta2
+                            if (lvl-m-1 == k) then
+                                a_carbon_m(lvl-m-1) = a_carbon_m(k)*cache/delta2
                             else
                                 a_carbon_m(lvl-m-1) = a_carbon_m(lvl-m-1)+&
-                                    a_carbon_m(i)*cache/delta2
+                                    a_carbon_m(k)*cache/delta2
                             end if
                             m = m + 1
                         else
                             a_carbon_m(lvl-m) = a_carbon_m(lvl-m)+&
-                                a_carbon_m(i)*(dz_m(i)-cache)/dz_m(i)
-                            if (lvl-m-1 == i) then
-                                a_carbon_m(lvl-m-1) = a_carbon_m(i)*cache/dz_m(i)
+                                a_carbon_m(k)*(dz_m(k)-cache)/dz_m(k)
+                            if (lvl-m-1 == k) then
+                                a_carbon_m(lvl-m-1) = a_carbon_m(k)*cache/dz_m(k)
                             else
                                 a_carbon_m(lvl-m-1) = a_carbon_m(lvl-m-1)+&
-                                    a_carbon_m(i)*cache/dz_m(i)
+                                    a_carbon_m(k)*cache/dz_m(k)
                             end if
                             m = m + 1
                         end if
