@@ -156,6 +156,7 @@ instances:
       KSi: niva_brom_eqconst/KSi
       PO4: niva_brom_redox/PO4
       NH4: niva_brom_redox/NH4
+      SO4: niva_brom_redox/SO4
       Si: niva_brom_redox/Si
       H2S: niva_brom_redox/H2S
       Alk: niva_brom_redox/Alk

@@ -166,7 +166,8 @@ contains
         real(rk)    :: lat_light
         real(rk)    :: kc                       !attenuation constant for the self shading effect
         real(rk)    :: k_erlov                  !extinction coefficient
-        real(rk)    :: da_c = 0.                !dead algae
+        real(rk)    :: da_cache = 0.            !dead algae total
+        real(rk)    :: da_c = 0.                !dead algae per iteration
         integer     :: freq_az                  !vert.turb. / bhc frequency
         integer     :: freq_sed                 !sinking / bhc frequency
         integer     :: last_day, model_year = 0
@@ -252,6 +253,12 @@ contains
             do k = number_of_layers, 1, -1
                 call ice_l(k)%rewrite_algae(k, 0)
             end do
+            !recalculate algae
+            !in case of melting, routine uses old layers widths
+            do k = number_of_layers, 1, -1
+                call ice_l(k)%do_rec_algae(k, hice(julianday), da_c)
+                da_cache = da_cache + da_c
+            end do
             !ice algae processes calculated once per day is here,
             !also recalculates io for bottom of ice layer
             do k = number_of_layers, 1, -1
@@ -261,9 +268,9 @@ contains
                 if (io_ice /= -1.) io_temp = io_ice
             end do
             !recalculate algae
+            !in case of congelation
             do k = number_of_layers, 1, -1
                 call ice_l(k)%do_rec_algae(k, hice(julianday), da_c)
-                da_c = da_c + da_c
             end do
             !get recalculated algae
             do k = number_of_layers, 1, -1
@@ -345,6 +352,7 @@ contains
                 call saving_state_variables_data(model_year, julianday, lev_max, par_max, par_name, z, cc)
             end if
             !---END-of-NETCDF--------------------------------------------------------------------------------------
+            da_cache = 0.
             da_c = 0.
         end do
         

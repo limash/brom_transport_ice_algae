@@ -150,7 +150,8 @@ module ice_algae_lib
         procedure, public:: do_rec_algae
         procedure:: do_grid
         procedure:: do_par
-        procedure:: do_transport
+        procedure:: do_congelation_algae
+        procedure:: do_melting_algae
         procedure:: do_bulk_temperature
         procedure:: do_bulk_salinity
         procedure:: do_brine_salinity
@@ -362,14 +363,18 @@ contains
             prev_ice_thickness = ice_thickness
             trigger = .true.
         end if
-
-        if (lvl == 1) trigger = .false.
-        
         ice_growth_temp = ice_growth
-        call self%do_transport(lvl, ice_growth_temp, da_c)
-        
-        if (lvl == 1) trigger_melting = .false.
-    
+
+        da_c = 0.
+        if (ice_growth_temp > 0.) then
+            call self%do_congelation_algae(lvl, ice_growth_temp)
+            if (lvl == 1) trigger = .false.
+        else
+            call self%do_melting_algae(lvl, ice_growth_temp, da_c)
+            if (lvl == 1) trigger_melting = .false.
+            if (lvl == 1) trigger = .false.
+        end if
+
     end subroutine do_rec_algae
     
     subroutine do_ice(self, lvl, nh4, no2, no3, po4, dt, ice_thickness)
@@ -530,7 +535,42 @@ contains
         
     end subroutine do_par
 
-    subroutine do_transport(self, lvl, ice_growth_temp_in, da_c)
+    subroutine do_congelation_algae(self, lvl, ice_growth_temp_in)
+    !evaluate transport of the algae
+    !caused by freezing/melting
+
+        class(ice_layer):: self
+        integer, intent(in):: lvl
+        real(rk), intent(in):: ice_growth_temp_in
+
+        real(rk):: delta1, delta2, cache
+        real(rk):: ice_growth_temp
+
+        ice_growth_temp = ice_growth_temp_in
+
+        !for initializing algae position after summer for example
+        if ((lvl == (number_of_layers - 1)) .and. a_b == 0.) then
+            a_b = self%z
+        end if
+
+        if (lvl /= number_of_layers) then
+        !ice increasing
+        !recalculate layer by layer
+        !uses new layers
+            if (a_b >= self%z) then
+                return
+            else
+                delta1 = self%z - a_b
+                delta2 = min(1., delta1 / dz_m(lvl+1)) !part of the lower layer
+                a_carbon_m(lvl) = a_carbon_m(lvl) + delta2 * a_carbon_m(lvl+1)
+                a_carbon_m(lvl+1) = a_carbon_m(lvl+1) -&
+                    delta2 * a_carbon_m(lvl+1)
+            end if
+        end if
+
+    end subroutine do_congelation_algae
+
+    subroutine do_melting_algae(self, lvl, ice_growth_temp_in, da_c)
     !evaluate transport of the algae
     !caused by freezing/melting
 
@@ -546,30 +586,17 @@ contains
         ice_growth_temp = ice_growth_temp_in
         da_c = 0.
 
-        !for initializing algae position after summer for example
-        if ((lvl == (number_of_layers - 1)) .and. a_b == 0.) then
-            a_b = self%z
-        end if
-
-        if (ice_growth_temp > 0. .and. lvl /= number_of_layers) then
-            if (a_b >= self%z) then
-                return
-            else
-                delta1 = self%z - a_b
-                delta2 = min(1., delta1 / dz_m(lvl+1)) !part of the lower layer
-                a_carbon_m(lvl) = a_carbon_m(lvl) + delta2 * a_carbon_m(lvl+1)
-                a_carbon_m(lvl+1) = a_carbon_m(lvl+1) -&
-                    delta2 * a_carbon_m(lvl+1)
-            end if
-        else if(ice_growth_temp < 0. .and. (trigger_melting .eqv. .false.)) then
+        if(ice_growth_temp < 0. .and. (trigger_melting .eqv. .false.)) then
+        !recalculate all layers once, so we need trigger
+        !uses old layers
             ice_growth_temp = abs(ice_growth_temp)
             delta0 = z_m(lvl) - ice_growth_temp
-            if (delta0 < a_b) then
+            if (delta0 <= a_b) then
                 do k = lvl, 1, -1
                     da_c = da_c + a_carbon_m(k)
                     a_carbon_m(k) = 0.
                 end do
-                a_b = delta0
+                a_b = delta0 - dz_m(lvl)
             else if (delta0 > a_b .and. ice_growth_temp > dz_m(lvl)) then
                 i = lvl
                 do while (ice_growth_temp > dz_m(i))
@@ -634,12 +661,13 @@ contains
                 end do
             end if
             ice_growth_temp = 0.
+            if (a_b > z_m(lvl-1)) a_b = z_m(lvl-1)
             trigger_melting = .true.
         else
             return
         end if
 
-    end subroutine do_transport
+    end subroutine do_melting_algae
     
     subroutine do_bulk_temperature(self, air_temp, water_temp, ice_thickness)
     ![C]
