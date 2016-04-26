@@ -350,12 +350,13 @@ contains
         
     end subroutine do_slow_ice
     
-    subroutine do_rec_algae(self, lvl, ice_thickness, da_c)
+    subroutine do_rec_algae(self, lvl, ice_thickness, da_c, before)
     
         class(ice_layer):: self
         integer,  intent(in):: lvl
         real(rk), intent(in):: ice_thickness
         real(rk), intent(out)  :: da_c
+        logical, intent(in)    :: before
 
         !ice_growth/melting calculation
         if (trigger .eqv. .false.) then
@@ -366,10 +367,10 @@ contains
         ice_growth_temp = ice_growth
 
         da_c = 0.
-        if (ice_growth_temp > 0.) then
+        if (ice_growth_temp > 0. .and. (before .eqv. .false.)) then
             call self%do_congelation_algae(lvl, ice_growth_temp)
             if (lvl == 1) trigger = .false.
-        else
+        else if (ice_growth_temp < 0. .and. (before .eqv. .true.)) then
             call self%do_melting_algae(lvl, ice_growth_temp, da_c)
             if (lvl == 1) trigger_melting = .false.
             if (lvl == 1) trigger = .false.

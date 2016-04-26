@@ -254,9 +254,9 @@ contains
                 call ice_l(k)%rewrite_algae(k, 0)
             end do
             !recalculate algae
-            !in case of melting, routine uses old layers widths
+            !in case of melting routine uses old layers widths
             do k = number_of_layers, 1, -1
-                call ice_l(k)%do_rec_algae(k, hice(julianday), da_c)
+                call ice_l(k)%do_rec_algae(k, hice(julianday), da_c, before=.true.)
                 da_cache = da_cache + da_c
             end do
             !ice algae processes calculated once per day is here,
@@ -268,9 +268,9 @@ contains
                 if (io_ice /= -1.) io_temp = io_ice
             end do
             !recalculate algae
-            !in case of congelation
+            !in case of congelation routine uses new layer widths
             do k = number_of_layers, 1, -1
-                call ice_l(k)%do_rec_algae(k, hice(julianday), da_c)
+                call ice_l(k)%do_rec_algae(k, hice(julianday), da_c, before=.false.)
             end do
             !get recalculated algae
             do k = number_of_layers, 1, -1
