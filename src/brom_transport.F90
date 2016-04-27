@@ -249,6 +249,9 @@ contains
                 bound_up(i_Si)  = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 8.0! max 16 microM at day 205 approx.
             end if
             
+            if (julianday == 314) then
+                continue
+            end if
             !get algae
             do k = number_of_layers, 1, -1
                 call ice_l(k)%rewrite_algae(k, 0)
@@ -274,6 +277,9 @@ contains
             end do
             !get recalculated algae
             do k = number_of_layers, 1, -1
+                if (k == 1) then
+                    continue
+                end if
                 call ice_l(k)%rewrite_algae(k, 1)
             end do
 
@@ -340,7 +346,7 @@ contains
                     end do
                 end do
             end do
-            !-------NETCDF-----------------------------------------------------------------------------------------    
+            !-------NETCDF-----------------------------------------------------------------------------------------
             write (*,'(a, i4, a, i4)') " model year:", model_year, "; julianday:", julianday
             call netcdf_ice%save_netcdf_algae(ice_l, 1, number_of_layers, julianday, hice(julianday))
             call netcdf_pelagic%save_netcdf(1, boundary_water_bbl - 1,  lev_max, julianday, cc, tem2, sal2, Kz2, model, z, iz)

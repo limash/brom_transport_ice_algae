@@ -359,7 +359,7 @@ contains
         logical, intent(in)    :: before
 
         !ice_growth/melting calculation
-        if (trigger .eqv. .false.) then
+        if ((trigger .eqv. .false.) .and. (before .eqv. .true.)) then
             ice_growth = ice_thickness - prev_ice_thickness
             prev_ice_thickness = ice_thickness
             trigger = .true.
@@ -661,8 +661,8 @@ contains
                         ice_growth_temp/dz_m(i-1)
                 end do
             end if
+            if (a_b > (delta0 - dz_m(lvl))) a_b = delta0 - dz_m(lvl)
             ice_growth_temp = 0.
-            if (a_b > z_m(lvl-1)) a_b = z_m(lvl-1)
             trigger_melting = .true.
         else
             return
