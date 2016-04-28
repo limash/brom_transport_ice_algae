@@ -7,11 +7,8 @@ module ice_algae_lib
 !precise light limitation
 !     z_conv equals 1 for now - correction needed
 !     for nutreints in water the response should be implemented
-!     implying recalculation of algae and nutrients properties
-!while ice increase\decrease
-!     (or maybe only for nutrients)
 !     recruitment of algae - melnikov
-!     Si and oxygen implementation!
+!     Si, detritus and oxygen implementation!
 !     parts of nitrite and nitrates of v_nina
     
     use fabm_types, only: rk
@@ -546,6 +543,7 @@ contains
 
         real(rk):: delta1, delta2, cache
         real(rk):: ice_growth_temp
+        real(rk):: motility
 
         ice_growth_temp = ice_growth_temp_in
 
@@ -561,6 +559,12 @@ contains
             if (a_b >= self%z) then
                 return
             else
+                if ((lvl == (number_of_layers - 1)) .and. &
+                    (ice_growth_temp < 0.015)) then
+                    motility = (1 - (ice_growth_temp / 0.015)) / 100.
+                    a_b = min(self%z, a_b + motility)
+                end if
+                
                 delta1 = self%z - a_b
                 delta2 = min(1., delta1 / dz_m(lvl+1)) !part of the lower layer
                 a_carbon_m(lvl) = a_carbon_m(lvl) + delta2 * a_carbon_m(lvl+1)
