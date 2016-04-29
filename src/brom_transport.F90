@@ -167,7 +167,7 @@ contains
         real(rk)    :: kc                       !attenuation constant for the self shading effect
         real(rk)    :: k_erlov                  !extinction coefficient
         real(rk)    :: da_cache = 0.            !dead algae total
-        real(rk)    :: da_c = 0.                !dead algae per iteration
+        real(rk)    :: da_c = 0., da_n = 0., da_p = 0. !dead algae per iteration
         integer     :: freq_az                  !vert.turb. / bhc frequency
         integer     :: freq_sed                 !sinking / bhc frequency
         integer     :: last_day, model_year = 0
@@ -255,10 +255,6 @@ contains
                     / 365.)) * 8.0! max 16 microM at day 205 approx.
             end if
             
-            if (julianday == 3) then
-                write(*, '(a)') "debug point"
-                continue
-            end if
             !get algae
             do k = number_of_layers, 1, -1
                 call ice_l(k)%rewrite_algae(k, 0)
@@ -266,7 +262,8 @@ contains
             !recalculate algae
             !in case of melting routine uses old layers widths
             do k = number_of_layers, 1, -1
-                call ice_l(k)%do_rec_algae(k, hice(julianday), da_c, before=.true.)
+                call ice_l(k)%do_rec_algae(k, hice(julianday), &
+                    da_c, da_n, da_p, before=.true.)
                 da_cache = da_cache + da_c
             end do
             !ice algae processes calculated once per day is here,
@@ -280,7 +277,8 @@ contains
             !recalculate algae
             !in case of congelation routine uses new layer widths
             do k = number_of_layers, 1, -1
-                call ice_l(k)%do_rec_algae(k, hice(julianday), da_c, before=.false.)
+                call ice_l(k)%do_rec_algae(k, hice(julianday), &
+                    da_c, da_n, da_p, before=.false.)
             end do
             !get recalculated algae
             do k = number_of_layers, 1, -1
@@ -367,6 +365,8 @@ contains
             !---END-of-NETCDF--------------------------------------------------------------------------------------
             da_cache = 0.
             da_c = 0.
+            da_n = 0.
+            da_p = 0.
         end do
         
     end subroutine do_brom_transport

@@ -176,7 +176,6 @@ module ice_algae_lib
         procedure:: resp
         procedure:: exud
         procedure:: mort
-        procedure:: melt
         procedure:: do_a_nitrogen
         procedure:: uptake_n
         procedure:: release_n
@@ -347,13 +346,14 @@ contains
         
     end subroutine do_slow_ice
     
-    subroutine do_rec_algae(self, lvl, ice_thickness, da_c, before)
-    
+    subroutine do_rec_algae(self, lvl, ice_thickness, &
+        da_c, da_n, da_p, before)
+
         class(ice_layer):: self
         integer,  intent(in):: lvl
         real(rk), intent(in):: ice_thickness
-        real(rk), intent(out)  :: da_c
-        logical, intent(in)    :: before
+        logical, intent(in) :: before
+        real(rk), intent(out):: da_c, da_n, da_p
 
         !ice_growth/melting calculation
         if ((trigger .eqv. .false.) .and. (before .eqv. .true.)) then
@@ -364,11 +364,20 @@ contains
         ice_growth_temp = ice_growth
 
         da_c = 0.
+        da_n = 0.
+        da_p = 0.
         if ((ice_growth_temp > 0.) .and. (before .eqv. .false.)) then
             call self%do_congelation_algae(lvl, ice_growth_temp, a_carbon_m)
+            call self%do_congelation_algae(lvl, ice_growth_temp, a_nitrogen_m)
+            call self%do_congelation_algae(lvl, ice_growth_temp, a_phosphorus_m)
             if (lvl == 1) trigger = .false.
         else if ((ice_growth_temp <= 0.) .and. (before .eqv. .true.)) then
-            call self%do_melting_algae(lvl, ice_growth_temp, a_carbon_m, da_c)
+            if (lvl == number_of_layers) then
+                call self%do_melting_algae(lvl, ice_growth_temp, a_carbon_m, da_c)
+                call self%do_melting_algae(lvl, ice_growth_temp, a_nitrogen_m, da_n)
+                call self%do_melting_algae(lvl, ice_growth_temp, a_phosphorus_m, da_p)
+                trigger_melting = .true.
+            end if
             if (lvl == 1) trigger_melting = .false.
             if (lvl == 1) trigger = .false.
         end if
@@ -466,8 +475,12 @@ contains
         
         if (befor_after == 0) then
             a_carbon_m(lvl) = self%a_carbon
+            a_nitrogen_m(lvl) = self%a_nitrogen
+            a_phosphorus_m(lvl) = self%a_phosphorus
         else
             self%a_carbon = a_carbon_m(lvl)
+            self%a_nitrogen = a_nitrogen_m(lvl)
+            self%a_phosphorus = a_phosphorus_m(lvl)
         end if
         
     end subroutine rewrite_algae
@@ -576,7 +589,7 @@ contains
 
     end subroutine do_congelation_algae
 
-    subroutine do_melting_algae(self, lvl, ice_growth_temp_in, nutrient, da_c)
+    subroutine do_melting_algae(self, lvl, ice_growth_temp_in, nutrient, da)
     !evaluate transport of the algae
     !caused by freezing/melting
 
@@ -584,14 +597,14 @@ contains
         integer, intent(in):: lvl
         real(rk), intent(in):: ice_growth_temp_in
         real(rk), dimension(:), intent(inout):: nutrient
-        real(rk), intent(out):: da_c
+        real(rk), intent(out):: da
 
         real(rk):: delta0, delta1, delta2, cache
         real(rk):: ice_growth_temp
         integer:: i, m, k
 
         ice_growth_temp = ice_growth_temp_in
-        da_c = 0.
+        da = 0.
 
         if(ice_growth_temp < 0. .and. (trigger_melting .eqv. .false.)) then
         !recalculate all layers once, so we need trigger
@@ -600,20 +613,20 @@ contains
             delta0 = z_m(lvl) - ice_growth_temp
             if (delta0 <= a_b) then
                 do k = lvl, 1, -1
-                    da_c = da_c + nutrient(k)
+                    da = da + nutrient(k)
                     nutrient(k) = 0.
                 end do
                 a_b = delta0 - dz_m(lvl)
             else if (delta0 > a_b .and. ice_growth_temp > dz_m(lvl)) then
                 i = lvl
                 do while (ice_growth_temp > dz_m(i))
-                    da_c = da_c + nutrient(i)
+                    da = da + nutrient(i)
                     nutrient(i) = 0.
                     ice_growth_temp = ice_growth_temp - dz_m(i)
                     i = i - 1
                 end do
                 delta1 = ice_growth_temp/dz_m(i)
-                da_c = da_c + delta1*nutrient(i)
+                da = da + delta1*nutrient(i)
                 nutrient(i) = &
                         nutrient(i) - nutrient(i)*delta1
 
@@ -655,7 +668,7 @@ contains
                 end if
             else
                 delta1 = ice_growth_temp/dz_m(lvl)
-                da_c = da_c + delta1*nutrient(lvl)
+                da = da + delta1*nutrient(lvl)
                 nutrient(lvl) = &
                     nutrient(lvl) - nutrient(lvl)*delta1
                 do i = lvl, 2, -1
@@ -669,7 +682,6 @@ contains
             end if
             if (a_b > (delta0 - dz_m(lvl))) a_b = delta0 - dz_m(lvl)
             ice_growth_temp = 0.
-            trigger_melting = .true.
         else
             return
         end if
@@ -984,7 +996,7 @@ contains
         class(ice_layer):: self
         integer, intent(in):: lvl
         real(rk):: gpp = 0., resp = 0., &
-            exud = 0., mort = 0., melt = 0.
+            exud = 0., mort = 0.
 
         gpp = self%gpp()
         resp = self%resp()
@@ -992,9 +1004,8 @@ contains
         mort = self%mort()
 
         if (lvl == number_of_layers) then
-            melt = self%melt()
             self%d_a_carbon = self%a_carbon * (gpp - resp -&
-                      exud - mort - melt) + recruit
+                      exud - mort) + recruit
         else
             self%d_a_carbon = self%a_carbon * (gpp - resp -&
                       exud - mort)
@@ -1084,7 +1095,7 @@ contains
         real(rk):: n_cell
         
         n_cell = self%a_nitrogen / self%a_carbon
-        if(isnan(n_cell)) n_cell = 0.
+        if(isnan(n_cell) .or. self%a_carbon == 0.) n_cell = 0.
     
     end function n_cell
     
@@ -1095,7 +1106,7 @@ contains
         real(rk):: p_cell
         
         p_cell = self%a_phosphorus / self%a_carbon
-        if(isnan(p_cell)) p_cell = 0.
+        if(isnan(p_cell) .or. self%a_carbon == 0.) p_cell = 0.
     
     end function p_cell
     
@@ -1141,29 +1152,23 @@ contains
     
     end function mort
     
-    function melt(self)
-    !melting rate - per hour
-
-        class(ice_layer):: self
-        real(rk):: melt
-        
-        melt =  -1. * ice_growth / z_s / 24. !24 is to transform in per hour units
-        if (melt < 0) melt = 0.
-    
-    end function melt
-    
     subroutine do_a_nitrogen(self, lvl)
     !brine concentrations changes of ice algae nitrogen
     !mg N per hour
     
         class(ice_layer):: self
         integer, intent(in):: lvl
+        
+        real(rk):: uptake_n = 0., release_n = 0.
+        
+        uptake_n = self%uptake_n()
+        release_n = self%release_n()
 
         if (lvl == number_of_layers) then
-            self%d_a_nitrogen = self%a_nitrogen * (self%uptake_n() - self%release_n() -&
-                      self%last_mort - self%melt()) + recruit
+            self%d_a_nitrogen = self%a_nitrogen * (uptake_n - release_n -&
+                      self%last_mort) + recruit
         else
-            self%d_a_nitrogen = self%a_nitrogen * (self%uptake_n() - self%release_n() -&
+            self%d_a_nitrogen = self%a_nitrogen * (uptake_n - release_n -&
                       self%last_mort)
         end if
     
@@ -1175,7 +1180,12 @@ contains
         class(ice_layer):: self
         real(rk):: uptake_n
         
-        uptake_n = (self%v_ammonium() + self%v_nina()) / 24. !to per hour transform
+        real(rk):: v_ammonium = 0., v_nina = 0.
+        
+        v_ammonium = self%v_ammonium()
+        v_nina = self%v_nina()
+        
+        uptake_n = (v_ammonium + v_nina) / 24. !to per hour transform
     
     end function uptake_n
     
@@ -1185,13 +1195,14 @@ contains
         class(ice_layer):: self
         real(rk):: v_ammonium
 
-        real(rk):: foo
+        real(rk):: foo, n_cell_local = 0.
         
+        n_cell_local = self%n_cell()
         foo = self%a_nitrogen / self%a_phosphorus
         if (self%a_nitrogen > n_min .and. self%a_nitrogen < n_max &
             .and. foo < max_n_p) then
             v_ammonium = (v_max_n * self%nh4) / (k_ammonium + self%nh4) *&
-                (1 - (self%n_cell() / n_max))
+                (1 - (n_cell_local / n_max))
         else
             v_ammonium = 0.
         end if
@@ -1243,7 +1254,7 @@ contains
 
         if (lvl == number_of_layers) then
             self%d_a_phosphorus = self%a_phosphorus * (self%uptake_p() - self%release_p() -&
-                      self%last_mort - self%melt()) + recruit
+                      self%last_mort) + recruit
         else
             self%d_a_phosphorus = self%a_phosphorus * (self%uptake_p() - self%release_p() -&
                       self%last_mort)
