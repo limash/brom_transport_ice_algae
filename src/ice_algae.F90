@@ -365,10 +365,10 @@ contains
 
         da_c = 0.
         if ((ice_growth_temp > 0.) .and. (before .eqv. .false.)) then
-            call self%do_congelation_algae(lvl, ice_growth_temp)
+            call self%do_congelation_algae(lvl, ice_growth_temp, a_carbon_m)
             if (lvl == 1) trigger = .false.
         else if ((ice_growth_temp <= 0.) .and. (before .eqv. .true.)) then
-            call self%do_melting_algae(lvl, ice_growth_temp, da_c)
+            call self%do_melting_algae(lvl, ice_growth_temp, a_carbon_m, da_c)
             if (lvl == 1) trigger_melting = .false.
             if (lvl == 1) trigger = .false.
         end if
@@ -533,13 +533,14 @@ contains
         
     end subroutine do_par
 
-    subroutine do_congelation_algae(self, lvl, ice_growth_temp_in)
+    subroutine do_congelation_algae(self, lvl, ice_growth_temp_in, nutrient)
     !evaluate transport of the algae
     !caused by freezing/melting
 
         class(ice_layer):: self
         integer, intent(in):: lvl
         real(rk), intent(in):: ice_growth_temp_in
+        real(rk), dimension(:), intent(inout):: nutrient
 
         real(rk):: delta1, delta2, cache
         real(rk):: ice_growth_temp
@@ -567,21 +568,22 @@ contains
                 
                 delta1 = self%z - a_b
                 delta2 = min(1., delta1 / dz_m(lvl+1)) !part of the lower layer
-                a_carbon_m(lvl) = a_carbon_m(lvl) + delta2 * a_carbon_m(lvl+1)
-                a_carbon_m(lvl+1) = a_carbon_m(lvl+1) -&
-                    delta2 * a_carbon_m(lvl+1)
+                nutrient(lvl) = nutrient(lvl) + delta2 * nutrient(lvl+1)
+                nutrient(lvl+1) = nutrient(lvl+1) -&
+                    delta2 * nutrient(lvl+1)
             end if
         end if
 
     end subroutine do_congelation_algae
 
-    subroutine do_melting_algae(self, lvl, ice_growth_temp_in, da_c)
+    subroutine do_melting_algae(self, lvl, ice_growth_temp_in, nutrient, da_c)
     !evaluate transport of the algae
     !caused by freezing/melting
 
         class(ice_layer):: self
         integer, intent(in):: lvl
         real(rk), intent(in):: ice_growth_temp_in
+        real(rk), dimension(:), intent(inout):: nutrient
         real(rk), intent(out):: da_c
 
         real(rk):: delta0, delta1, delta2, cache
@@ -598,22 +600,22 @@ contains
             delta0 = z_m(lvl) - ice_growth_temp
             if (delta0 <= a_b) then
                 do k = lvl, 1, -1
-                    da_c = da_c + a_carbon_m(k)
-                    a_carbon_m(k) = 0.
+                    da_c = da_c + nutrient(k)
+                    nutrient(k) = 0.
                 end do
                 a_b = delta0 - dz_m(lvl)
             else if (delta0 > a_b .and. ice_growth_temp > dz_m(lvl)) then
                 i = lvl
                 do while (ice_growth_temp > dz_m(i))
-                    da_c = da_c + a_carbon_m(i)
-                    a_carbon_m(i) = 0.
+                    da_c = da_c + nutrient(i)
+                    nutrient(i) = 0.
                     ice_growth_temp = ice_growth_temp - dz_m(i)
                     i = i - 1
                 end do
                 delta1 = ice_growth_temp/dz_m(i)
-                da_c = da_c + delta1*a_carbon_m(i)
-                a_carbon_m(i) = &
-                        a_carbon_m(i) - a_carbon_m(i)*delta1
+                da_c = da_c + delta1*nutrient(i)
+                nutrient(i) = &
+                        nutrient(i) - nutrient(i)*delta1
 
                 delta2 = dz_m(i) - ice_growth_temp
                 cache = delta2 - dz_m(lvl)
@@ -621,31 +623,31 @@ contains
                 !write to bottom
                     m = 0
                     do k = i, 1, -1
-                        a_carbon_m(lvl-m) = a_carbon_m(i)
-                        a_carbon_m(i) = 0.
+                        nutrient(lvl-m) = nutrient(i)
+                        nutrient(i) = 0.
                         m = m + 1
                     end do
                 else
                     m = 0
                     do k = i, 2, -1
                         if (i == k) then
-                            a_carbon_m(lvl-m) = a_carbon_m(lvl-m)+&
-                                a_carbon_m(k)*dz_m(lvl-m)/delta2
+                            nutrient(lvl-m) = nutrient(lvl-m)+&
+                                nutrient(k)*dz_m(lvl-m)/delta2
                             if (lvl-m-1 == k) then
-                                a_carbon_m(lvl-m-1) = a_carbon_m(k)*cache/delta2
+                                nutrient(lvl-m-1) = nutrient(k)*cache/delta2
                             else
-                                a_carbon_m(lvl-m-1) = a_carbon_m(lvl-m-1)+&
-                                    a_carbon_m(k)*cache/delta2
+                                nutrient(lvl-m-1) = nutrient(lvl-m-1)+&
+                                    nutrient(k)*cache/delta2
                             end if
                             m = m + 1
                         else
-                            a_carbon_m(lvl-m) = a_carbon_m(lvl-m)+&
-                                a_carbon_m(k)*(dz_m(k)-cache)/dz_m(k)
+                            nutrient(lvl-m) = nutrient(lvl-m)+&
+                                nutrient(k)*(dz_m(k)-cache)/dz_m(k)
                             if (lvl-m-1 == k) then
-                                a_carbon_m(lvl-m-1) = a_carbon_m(k)*cache/dz_m(k)
+                                nutrient(lvl-m-1) = nutrient(k)*cache/dz_m(k)
                             else
-                                a_carbon_m(lvl-m-1) = a_carbon_m(lvl-m-1)+&
-                                    a_carbon_m(k)*cache/dz_m(k)
+                                nutrient(lvl-m-1) = nutrient(lvl-m-1)+&
+                                    nutrient(k)*cache/dz_m(k)
                             end if
                             m = m + 1
                         end if
@@ -653,15 +655,15 @@ contains
                 end if
             else
                 delta1 = ice_growth_temp/dz_m(lvl)
-                da_c = da_c + delta1*a_carbon_m(lvl)
-                a_carbon_m(lvl) = &
-                    a_carbon_m(lvl) - a_carbon_m(lvl)*delta1
+                da_c = da_c + delta1*nutrient(lvl)
+                nutrient(lvl) = &
+                    nutrient(lvl) - nutrient(lvl)*delta1
                 do i = lvl, 2, -1
-                    a_carbon_m(i) = &
-                        a_carbon_m(i) + a_carbon_m(i-1)*&
+                    nutrient(i) = &
+                        nutrient(i) + nutrient(i-1)*&
                         ice_growth_temp/dz_m(i-1)
-                    a_carbon_m(i-1) = &
-                        a_carbon_m(i-1) - a_carbon_m(i-1)*&
+                    nutrient(i-1) = &
+                        nutrient(i-1) - nutrient(i-1)*&
                         ice_growth_temp/dz_m(i-1)
                 end do
             end if

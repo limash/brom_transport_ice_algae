@@ -228,28 +228,35 @@ contains
             end if
             
             !compute surface irradiance
-            io = max(0., 80. * cos((lat_light - (23.5 * sin(2. * 3.14 * (julianday - 81.) /365.))) * 3.14 / 180.)) !W m-2
+            io = max(0., 80. * cos((lat_light - (23.5 * sin(2. * 3.14 * &
+                (julianday - 81.) /365.))) * 3.14 / 180.)) !W m-2
             io_temp = io
             
             !resend data that depend on julianday to FABM
-            call fabm_link_bulk_data(model, standard_variables%temperature, tem2(:, julianday))
-            call fabm_link_bulk_data(model, standard_variables%practical_salinity, sal2(:, julianday))
+            call fabm_link_bulk_data(model, &
+                standard_variables%temperature, tem2(:, julianday))
+            call fabm_link_bulk_data(model, &
+                standard_variables%practical_salinity, sal2(:, julianday))
             
             !boudary conditions
             if (i_NO3 /= -1) then
                 use_bound_up(i_NO3) = .true.
-                bound_up(i_NO3) = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 0.45! max 0.9 microM at day 205 approx.
+                bound_up(i_NO3) = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) &
+                    / 365.)) * 0.45! max 0.9 microM at day 205 approx.
             end if
             if (i_PO4 /= -1) then
                 use_bound_up(i_PO4) = .true.
-                bound_up(i_PO4) = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 0.07! max 0.14 microM at day 205 approx.
+                bound_up(i_PO4) = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) &
+                    / 365.)) * 0.07! max 0.14 microM at day 205 approx.
             end if
             if (i_Si /= -1) then
                 use_bound_up(i_Si)  = .true.
-                bound_up(i_Si)  = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) / 365.)) * 8.0! max 16 microM at day 205 approx.
+                bound_up(i_Si)  = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) &
+                    / 365.)) * 8.0! max 16 microM at day 205 approx.
             end if
             
-            if (julianday == 314) then
+            if (julianday == 3) then
+                write(*, '(a)') "debug point"
                 continue
             end if
             !get algae
