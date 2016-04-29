@@ -5,7 +5,6 @@ module ice_algae_lib
 !step implementation
 !     f_par integration in layers with algae for more
 !precise light limitation
-!     z_conv equals 1 for now - correction needed
 !     for nutreints in water the response should be implemented
 !     recruitment of algae - melnikov
 !     Si, detritus and oxygen implementation!
@@ -23,6 +22,9 @@ module ice_algae_lib
     real(rk):: ice_growth
     real(rk):: ice_growth_temp
     real(rk):: a_b !algae position
+    !vertical distance over which sea ice is influenced by gravity drainage
+    real(rk):: z_conv
+
     logical:: trigger !ice control
     logical:: trigger_melting !melting control
 
@@ -38,8 +40,6 @@ module ice_algae_lib
     real(rk):: chl_to_carbon = 30. !conversion factor (mg C mg Chl-1)
     real(rk):: carbon_to_oxy = 0.375 !conversion factor (mg C mg o2-1)
     
-    !vertical distance over which sea ice is influenced by gravity drainage
-    real(rk):: z_conv = 1.        
     real(rk):: gravity_drainage = 1.e-8 ![m * s-1]
     
     ![m2 s-1] diffusion coef. between bottom layer and sea water
@@ -245,6 +245,7 @@ contains
 
         prev_ice_thickness = 0.5 !only for first circle, 31 dec - 0.5m
         a_b = 0.
+        z_conv = 0.
 
         trigger = .false.
         trigger_melting = .false.
@@ -311,6 +312,7 @@ contains
             a_phosphorus_m = 0.
 
             a_b = 0.
+            z_conv = 0.
             ice_growth = 0.
             prev_ice_thickness = 0.
 
@@ -343,9 +345,13 @@ contains
         !to fix complex values
         if (isnan(day_length) .and. foo > 0) day_length = 0.
         if (isnan(day_length) .and. foo < 0) day_length = 24.
-        
+
+        if (self%brine_relative_volume >= 0.072) then
+            z_conv = z_m(lvl) - dz_m(lvl)
+        end if
+ 
     end subroutine do_slow_ice
-    
+ 
     subroutine do_rec_algae(self, lvl, ice_thickness, &
         da_c, da_n, da_p, before)
 
