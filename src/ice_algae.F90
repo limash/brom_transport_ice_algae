@@ -1,13 +1,21 @@
 #define NUMBER_OF_LAYERS_IN_ICE 5
 
 module ice_algae_lib
-!to do: does k_ice depend on chl? - update at every model
+!to do: 
+!     upgrade light subprogram
+
+!     does k_ice depend on chl? - update at every model
 !step implementation
+
 !     f_par integration in layers with algae for more
 !precise light limitation
+
 !     for nutreints in water the response should be implemented
+
 !     recruitment of algae - melnikov
+
 !     Si, detritus and oxygen implementation!
+
 !     parts of nitrite and nitrates of v_nina
     
     use fabm_types, only: rk
@@ -243,7 +251,11 @@ contains
         constructor_ice_layer%last_v_ammonium = 0.
         constructor_ice_layer%last_mort = 0.
 
+
+        day_length = 0.
         prev_ice_thickness = 0.5 !only for first circle, 31 dec - 0.5m
+        ice_growth = 0.
+        ice_growth_temp = 0.
         a_b = 0.
         z_conv = 0.
 
@@ -311,10 +323,12 @@ contains
             a_nitrogen_m = 0.
             a_phosphorus_m = 0.
 
+            day_length = 0.
+            prev_ice_thickness = 0.
+            ice_growth = 0.
+            ice_growth_temp = 0.
             a_b = 0.
             z_conv = 0.
-            ice_growth = 0.
-            prev_ice_thickness = 0.
 
             io_ice = io
 
@@ -361,6 +375,8 @@ contains
         logical, intent(in) :: before
         real(rk), intent(out):: da_c, da_n, da_p
 
+        if (ice_thickness < 0.2) return
+
         !ice_growth/melting calculation
         if ((trigger .eqv. .false.) .and. (before .eqv. .true.)) then
             ice_growth = ice_thickness - prev_ice_thickness
@@ -381,7 +397,8 @@ contains
             if (lvl == number_of_layers) then
                 call self%do_melting_algae(lvl, ice_growth_temp, a_carbon_m, da_c)
                 call self%do_melting_algae(lvl, ice_growth_temp, a_nitrogen_m, da_n)
-                call self%do_melting_algae(lvl, ice_growth_temp, a_phosphorus_m, da_p)
+                call self%do_melting_algae(lvl, ice_growth_temp, &
+                    a_phosphorus_m, da_p)
                 trigger_melting = .true.
             end if
             if (lvl == 1) trigger_melting = .false.
@@ -442,7 +459,8 @@ contains
     
     subroutine get_algae(self, z, par_z, bulk_temperature, bulk_salinity, &
         bulk_density, brine_temperature, brine_salinity, brine_density, &
-        a_carbon, a_nitrogen, a_phosphorus, nh4, no2, no3, po4, brine_relative_volume)
+        a_carbon, a_nitrogen, a_phosphorus, nh4, no2, no3, po4, &
+        brine_relative_volume)
     
         class(ice_layer):: self
         real(rk), intent(out):: z
@@ -700,7 +718,8 @@ contains
         class(ice_layer):: self
         real(rk), intent(in):: air_temp, water_temp, ice_thickness
         
-        self%bulk_temperature = air_temp + ((water_temp - air_temp) * self%z) / ice_thickness
+        self%bulk_temperature = air_temp + ((water_temp - air_temp) * self%z) &
+            / ice_thickness
         if (self%bulk_temperature > -0.2) self%bulk_temperature = -0.2
     
     end subroutine do_bulk_temperature
@@ -712,8 +731,8 @@ contains
         integer,  intent(in):: lvl
         real(rk), intent(in):: ice_thickness
         real(rk), intent(in):: water_sal
-        real(rk):: z_p !ratio btwn the distance from the ice surface and ice thickness
-        
+        !ratio btwn the distance from the ice surface and ice thickness
+        real(rk):: z_p        
         if (lvl == number_of_layers) then
             self%bulk_salinity = water_sal
         else
@@ -733,18 +752,25 @@ contains
         if (lvl == number_of_layers) then
             self%brine_salinity = self%bulk_salinity
         else
-            if (self%bulk_temperature < 0 .and. self%bulk_temperature >=  -22.9) then
-                self%brine_salinity = -3.9921 + (-22.700   * self%bulk_temperature) +&
-                                                (-1.0015   * self%bulk_temperature**2) +&
-                                                (-0.019956 * self%bulk_temperature**3)
-            else if (self%bulk_temperature < -22.9 .and. self%bulk_temperature >=  -44) then
-                self%brine_salinity = 206.24 + (-1.8907    * self%bulk_temperature) +&
-                                               (-0.060868  * self%bulk_temperature**2) +&
-                                               (-0.0010247 * self%bulk_temperature**3)
+            if (self%bulk_temperature < 0 .and. &
+                self%bulk_temperature >= -22.9) then
+
+                self%brine_salinity = -3.9921+(-22.700*self%bulk_temperature)+&
+                                     (-1.0015*self%bulk_temperature**2)+&
+                                     (-0.019956*self%bulk_temperature**3)
+
+            else if (self%bulk_temperature < -22.9 .and. &
+                self%bulk_temperature >=  -44) then
+
+                self%brine_salinity = 206.24+(-1.8907*self%bulk_temperature)+&
+                                      (-0.060868*self%bulk_temperature**2)+&
+                                      (-0.0010247*self%bulk_temperature**3)
+
             else if (self%bulk_temperature < -44) then
-                self%brine_salinity = -4442.1 + (-277.86  * self%bulk_temperature) +&
-                                                (-5.501   * self%bulk_temperature**2) +&
-                                                (-0.03669 * self%bulk_temperature**3)
+
+                self%brine_salinity = -4442.1+(-277.86*self%bulk_temperature)+&
+                                      (-5.501*self%bulk_temperature**2)+&
+                                      (-0.03669*self%bulk_temperature**3)
             end if
         end if
     
@@ -864,7 +890,8 @@ contains
     
     end subroutine do_phosphorus
     
-    subroutine do_bottom(self, nut_in_water, d_nut, a_nut, uptake, release, nut_brine)
+    subroutine do_bottom(self, nut_in_water, d_nut, a_nut, uptake, release, &
+            nut_brine)
     !calculate bottom fluxes
     !per day
     
@@ -877,8 +904,8 @@ contains
         d_nut = self%brine_flux_z(number_of_layers, nut_brine, nut_in_water) +&
                 self%brine_flux_s(number_of_layers, nut_brine, nut_in_water) +&
                 self%diffusion_flux_s(number_of_layers, nut_brine, nut_in_water) +&
-                self%congelation_flux_s(number_of_layers, nut_brine, nut_in_water) -&
-                a_nut * (uptake - release)
+                self%congelation_flux_s(number_of_layers, nut_brine, &
+                nut_in_water) - a_nut * (uptake - release)
     
     end subroutine do_bottom
     
@@ -959,7 +986,7 @@ contains
     end function diffusion_flux_s
     
     function congelation_flux_s(self, lvl, nut_brine, nut_in_water)
-    !brine diffusion flux for bottom - per day
+    !brine congelation flux for bottom - per day
     
         class(ice_layer):: self
         integer, intent(in)             :: lvl
@@ -967,8 +994,9 @@ contains
         real(rk), intent(in)            :: nut_in_water !for bottom layer
         real(rk), dimension(:), intent(in) :: nut_brine
         
-        congelation_flux_s = (ice_growth * (nut_in_water - nut_brine(lvl)) * nut_in_water) /&
-                             ((z_s + ice_growth) * self%brine_relative_volume * 86400.)
+        congelation_flux_s = ((ice_growth/86400.)*(nut_in_water-nut_brine(lvl))*&
+            nut_in_water)/((z_s+(ice_growth/86400.))*self%brine_relative_volume*&
+            86400.)
     
     end function congelation_flux_s
     
@@ -976,7 +1004,8 @@ contains
     !second_derivative
     
         class(ice_layer):: self
-        real(rk), intent(in)            :: pre_layer, layer, next_layer, pre_h, next_h
+        real(rk), intent(in)            :: pre_layer, layer, next_layer, &
+            pre_h, next_h
         real(rk)                        :: second_derivative
         real(rk)                        :: h
         
@@ -991,7 +1020,7 @@ contains
         class(ice_layer):: self
         real(rk)         :: brine_release
         
-        brine_release = (9.667e-9 + 4.49e-6 * ice_growth - 1.39e-7 * ice_growth**2) / 100.
+        brine_release = (9.667e-9+4.49e-6*ice_growth-1.39e-7*ice_growth**2)/100.
     
     end function brine_release
     

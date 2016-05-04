@@ -37,7 +37,8 @@ module brom_transport
     !bioturbation coefficient
     real(rk), allocatable, dimension(:) :: kz_bio
     !ice variables
-    real(rk), allocatable, dimension(:) :: hice, ice_area, heat_flux, snow_thick, t_ice
+    real(rk), allocatable, dimension(:) :: hice, ice_area, heat_flux, &
+        snow_thick, t_ice
     !arrays for bouns conditions
     real(rk), allocatable, dimension(:) :: bound_up, bound_low
   
@@ -83,10 +84,13 @@ contains
         pco2_atm                = get_brom_par("pco2_atm")
         
         !input_netcdf, kz2 - AKs
-        !hice -  "time-averaged average ice thickness in cell", also generates grid according to input data
-        call input_netcdf('KaraSea.nc', z, dz, kz_bio, lev_max, tem2, sal2, kz2, hice, boundary_bbl_sediments, &
-            boundary_water_bbl, width_bbl, resolution_bbl, width_bioturbation, resolution_bioturbation, &
-            width_sediments, resolution_sediments, year, ice_area, heat_flux, snow_thick, t_ice)
+        !hice - "time-averaged average ice thickness in cell"
+        !also generates grid according to input data
+        call input_netcdf('KaraSea.nc', z, dz, kz_bio, lev_max, tem2, sal2, kz2, &
+            hice, boundary_bbl_sediments, boundary_water_bbl, width_bbl, &
+            resolution_bbl, width_bioturbation, resolution_bioturbation, &
+            width_sediments, resolution_sediments, year, ice_area, heat_flux, &
+            snow_thick, t_ice)
         kz2(1:35, :) = kz2(1:35, :) * 0.1 !question
         
         !initialize FABM model from fabm.yaml
@@ -116,8 +120,8 @@ contains
 
         !auxiliary variables
         density = get_brom_par("density")
-        pressure = z + 10 !dbar, roughly equivalent to depth in m+ 1 bar atmospheric pressure
-        
+        !dbar, roughly equivalent to depth in m+ 1 bar atmospheric pressure
+        pressure = z + 10        
         ! Send pointers to state variable data to FABM
         do i = 1, par_max
             call fabm_link_bulk_state_data(model, i, cc(:, i))
@@ -125,13 +129,20 @@ contains
         
         !provide initial array slices with temperature and salinity
         !these will be resent every time julianday is updated, below
-        call fabm_link_bulk_data(model, standard_variables%temperature, tem2(:, 1))
-        call fabm_link_bulk_data(model, standard_variables%practical_salinity, sal2(:, 1))
-        call fabm_link_bulk_data(model, standard_variables%downwelling_photosynthetic_radiative_flux, iz)           !W m-2
-        call fabm_link_bulk_data(model, standard_variables%density, density)                                        !kg m-3
-        call fabm_link_bulk_data(model, standard_variables%pressure, pressure)                                      !dbar
-        call fabm_link_horizontal_data(model, standard_variables%wind_speed, wind_speed)                            !m s-1
-        call fabm_link_horizontal_data(model, standard_variables%mole_fraction_of_carbon_dioxide_in_air, pco2_atm)  !ppm
+        call fabm_link_bulk_data(model, standard_variables%temperature, &
+            tem2(:, 1))
+        call fabm_link_bulk_data(model, standard_variables%practical_salinity, &
+            sal2(:, 1))
+        call fabm_link_bulk_data(model, &
+            standard_variables%downwelling_photosynthetic_radiative_flux, iz) !W m-2
+        call fabm_link_bulk_data(model, standard_variables%density, &
+            density) !kg m-3
+        call fabm_link_bulk_data(model, standard_variables%pressure, &
+            pressure) !dbar
+        call fabm_link_horizontal_data(model, &
+            standard_variables%wind_speed, wind_speed) !m s-1
+        call fabm_link_horizontal_data(model, &
+            standard_variables%mole_fraction_of_carbon_dioxide_in_air, pco2_atm) !ppm
         call fabm_check_ready(model)
         
         do i = 1, par_max
@@ -141,7 +152,7 @@ contains
             !allow FABM models to use their default initialization (this sets cc)
             call fabm_initialize_state(model, 1, lev_max)
         else
-            !read initials from file ans save it inside cc massive (reset cc from input.dat)
+            !reset cc from input.dat
             call porting_initial_state_variables_data(lev_max, par_name, cc)
         end if
         
@@ -153,8 +164,10 @@ contains
         netcdf_pelagic => netcdf_o()
         netcdf_bottom  => netcdf_o()
         call netcdf_ice%init_netcdf_algae("output_ice.nc", 1, number_of_layers)
-        call netcdf_pelagic%init_netcdf("output_pelagic.nc", 1, boundary_water_bbl - 1, model)
-        call netcdf_bottom%init_netcdf("output_bottom.nc", boundary_water_bbl, lev_max, model)
+        call netcdf_pelagic%init_netcdf("output_pelagic.nc", 1, &
+            boundary_water_bbl - 1, model)
+        call netcdf_bottom%init_netcdf("output_bottom.nc", &
+            boundary_water_bbl, lev_max, model)
     
     end subroutine init_brom_transport
     
@@ -164,7 +177,7 @@ contains
         
         integer     :: i, id, ip, k, julianday, idt
         real(rk)    :: lat_light
-        real(rk)    :: kc                       !attenuation constant for the self shading effect
+        real(rk)    :: kc         !attenuation constant for the self shading effect
         real(rk)    :: k_erlov                  !extinction coefficient
         real(rk)    :: da_cache = 0.            !dead algae total
         real(rk)    :: da_c = 0., da_n = 0., da_p = 0. !dead algae per iteration
@@ -255,7 +268,7 @@ contains
                     / 365.)) * 8.0! max 16 microM at day 205 approx.
             end if
             
-            !get algae
+            !send algae to ice_l object
             do k = number_of_layers, 1, -1
                 call ice_l(k)%rewrite_algae(k, 0)
             end do
@@ -282,9 +295,6 @@ contains
             end do
             !get recalculated algae
             do k = number_of_layers, 1, -1
-                if (k == 1) then
-                    continue
-                end if
                 call ice_l(k)%rewrite_algae(k, 1)
             end do
 
@@ -315,7 +325,8 @@ contains
                 
                 !ice algae
                 do k = number_of_layers, 2, -1
-                    call ice_l(k)%do_ice(k, cc(1, i_NH4), cc(1, i_NO2), cc(1, i_NO3), cc(1, i_PO4), dt, hice(julianday))
+                    call ice_l(k)%do_ice(k, cc(1, i_NH4), cc(1, i_NO2), &
+                        cc(1, i_NO3), cc(1, i_PO4), dt, hice(julianday))
                 end do
                 
                 !compute surface fluxes in fabm
@@ -327,9 +338,10 @@ contains
                     !compute surface fluxes in FABM
                     dcc = 0.
                     fick = 0.
-                    call calculate_phys(cc, lev_max, par_max, use_bound_up, use_bound_low, bound_up, bound_low, &
-                                flux_sf, boundary_bbl_sediments, kz2, julianday, kz_bio, i_O2, dz, freq_az, &
-                                dcc, fick)
+                    call calculate_phys(cc, lev_max, par_max, use_bound_up, &
+                        use_bound_low, bound_up, bound_low, flux_sf, &
+                        boundary_bbl_sediments, kz2, julianday, kz_bio, &
+                        i_O2, dz, freq_az, dcc, fick)
                     !time integration
                     do k = 2, (lev_max - 1)
                         cc(k, :) = cc(k, :) + (dt / freq_az) * dcc(k, :) * 86400.
@@ -344,25 +356,31 @@ contains
                 !freq_sed is defined in brom.yaml
                 do  ip = 1, freq_sed
                     dcc = 0.
-                    call calculate_sed(par_max, lev_max, wbio, cc, dz, boundary_bbl_sediments, dcc)
+                    call calculate_sed(par_max, lev_max, wbio, cc, dz, &
+                        boundary_bbl_sediments, dcc)
                     !time integration
                     do  k = 2, (lev_max - 1)
                         cc(k, :) = cc(k, :) + (dt / freq_sed) * dcc(k, :) * 86400.
                     end do
                 end do
             end do
-            !-------NETCDF-----------------------------------------------------------------------------------------
-            write (*,'(a, i4, a, i4)') " model year:", model_year, "; julianday:", julianday
-            call netcdf_ice%save_netcdf_algae(ice_l, 1, number_of_layers, julianday, hice(julianday))
-            call netcdf_pelagic%save_netcdf(1, boundary_water_bbl - 1,  lev_max, julianday, cc, tem2, sal2, Kz2, model, z, iz)
-            call netcdf_bottom%save_netcdf(boundary_water_bbl, lev_max, lev_max, julianday, cc, tem2, sal2, Kz2, model, z, iz)
+            !-------NETCDF---------------------------------------------------------
+            write (*,'(a, i4, a, i4)') " model year:", &
+                model_year, "; julianday:", julianday
+            call netcdf_ice%save_netcdf_algae(ice_l, 1, number_of_layers, &
+                julianday, hice(julianday))
+            call netcdf_pelagic%save_netcdf(1, boundary_water_bbl - 1, &
+                lev_max, julianday, cc, tem2, sal2, Kz2, model, z, iz)
+            call netcdf_bottom%save_netcdf(boundary_water_bbl, lev_max, &
+                lev_max, julianday, cc, tem2, sal2, Kz2, model, z, iz)
             if (i == last_day - 1) then
                 call netcdf_ice%close_netcdf_algae()
                 call netcdf_pelagic%close_netcdf()
                 call netcdf_bottom%close_netcdf()
-                call saving_state_variables_data(model_year, julianday, lev_max, par_max, par_name, z, cc)
+                call saving_state_variables_data(model_year, julianday, &
+                    lev_max, par_max, par_name, z, cc)
             end if
-            !---END-of-NETCDF--------------------------------------------------------------------------------------
+            !---END-of-NETCDF------------------------------------------------------
             da_cache = 0.
             da_c = 0.
             da_n = 0.
