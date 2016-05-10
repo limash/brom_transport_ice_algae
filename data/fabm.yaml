@@ -1,148 +1,15 @@
 require_initialization: true
 instances:
+#--------------------------------------------------------------------------
   niva_brom_eqconst:
-  niva_brom_redox:
-    initialization:
-      Alk: 2300.
-      Mn2: 0.0
-      Mn3: 0.0
-      Mn4: 0.0
-      MnS: 0.0
-      MnCO3: 0.0
-      Fe2: 0.0
-      Fe3: 0.0
-      FeS: 0.0
-      NO2: 0.0
-      Si: 10.0
-      Sipart: 0.0
-      H2S: 0.0	   
-      S0:  0.0 
-      S2O3: 0.0
-      SO4: 25000.
-      Baae: 0.01
-      Bhae: 0.01 
-      Baan: 0.01
-      Bhan: 0.01
-      CaCO3: 500.0      
-      FeS2: 0.0
-      DIC: 2200.
-      PON: 0.01
-      DON: 0.0
-      NO3: 5.
-      PO4: 1.
-      NH4: 0.0
-      O2: 200.
     parameters:
-# ---- Model parameters ------
-      Wsed: 2.0         # !1Rate of sinking of detritus (POP, PON)d-1 !!  Wdetr=1.5 (Savchuk, Wulff,1996),!Wdetr= 3.5; 20. (Gregoire,2000)
-      Wbact: 0.1         # !Rate of sinking of bacteria (Bhae,Baae,Bhan,Baan) d-1
-      Wm: 5.0            # !7. !15. !Rate of accelerated sinking of particles with settled Mn hydroxides d-1
-# specific rates of biogeochemical processes
-#---- Mn---------
-      K_mn_ox: 0.1        #! 10. !0.01 !0.3 !0.75 !1.5 !10.; % Specific rate of oxidation of Mn2 to Mn3  with O2 (1/day).
-      K_mn_ox2: 0.2        #!10.! 0.01 !0.2 !-2 !10; %  Specific rate of oxidation of Mn3 to Mn4  with O2 (1/day)
-      K_mn_rd: 0.5          # !1. !0.5 !0.5 !0.4 ! 5;  %  Specific rate of reduction of Mn4 to Mn3  with H2S (1/day)
-      K_mn_rd2: 1.0         #!0.25 !0.25 !0.2 ! -2 !10; %  Specific rate of reduction of Mn3 to Mn2  with H2S (1/day)
-      K_mns: 1500.         #!2000. ! %  Conditional equilibrium constant for MnS from Mn2 with H2S (M)
-      K_mns_diss: 0.0005     #!0.0001   !10; %  Specific rate of dissolution of MnS to Mn2 and H2S (1/day)   
-      K_mns_form: 0.00001    #!0.00002 ! %  Specific rate of formation of MnS from Mn2 with H2S (1/day)            
-      K_mnco3: 15.          #!10. !2.e-2 ! Conditional equilibrium constant %  1.8e-11 (M) (Internet)      1 uM2 for Mn2+CO3->MnCO3 (Meysman,2003)
-      K_mnco3_diss: 7.e-4      #!1.e-6 ! 6.8e-4 !0.02 ! Specific rate of dissolution of MnCO3 (1/day)=6.8e-7   !2.5 X 10-1 yr-1 (vanCap06) !1x10-4 yr-1 (Hunter et al, 98)
-      K_mnco3_form: 3.e-4   #!2.e-8 !2.7e-7 !1.e-10   %  Specific rate of formation of MnCO3 (1/day)=2.7e-7  !! 1. X 10-4 yr-1(vanCap06)!1x10-4 yr-1 (Hunter et al, 98)
-      K_mnco3_ox: 0.0027     #!Specific rate of oxidation of MnCO3 with O2 (1/day)=0.0027  ( 1x10^(-6) M/yr ( Wang-Van Cappellen-96).
-      K_DON_Mn: 0.001        #!0.0001 !-0.0006   ! %  Specific rate of oxidation of DON with Mn4 (1/day)
-      K_PON_Mn: 0.001        #!0.0001 !-0.0003 ! %  Specific rate of oxidation of PON with Mn4 (1/day)
-      s_mnox_mn2: 0.01       #!threshold of Mn2 oxidation (uM Mn) (Yakushev,2007)
-      s_mnox_mn3: 0.01       #!threshold of Mn3 oxidation (uM Mn) (Yakushev,2007)
-      s_mnrd_mn4: 0.01       #!threshold of Mn4 reduciton (uM Mn) (Yakushev,2007)
-      s_mnrd_mn3: 0.01       #!threshold of Mn3 reduciton  (uM Mn) (Yakushev,2007)
-#---- Fe---------
-      K_fe_ox: 0.5           #!1.! Specific rate of oxidation of Fe2 to Fe3  with O2 (1/day)  *=4. (Konovalov,05)
-      K_fe_ox2: 0.001        #!0.1! Specific rate of oxidation of Fe2 to Fe3  with MnO2 (1/day) *=0.74 (Konovalov,05); 3x10^6 1/(M yr) is estimated in Van Cappellen-Wang-96 
-      K_fe_rd: 0.5           #!0.5 !-2    ! Specific rate of reduction of Fe3 to Fe2  with H2S (1/day) *=0.05 (Konovalov,05)
-      K_FeS: 2510.0          #!FeS equilibrium constant (Solubility Product Constant) (uM)=2510  ( 2.51x10-6 mol cm-3, Bektursuniva,11)  
-      K_FeS_form: 5.e-4      #!Specific rate of precipitation of FeS from Fe2 with H2S (1/day)=1.e-5 (4x10-3 1/yr, Bektursunova,11)
-      K_FeS_diss: 1.e-6      #!Specific rate of dissollution of FeS to Fe2 and H2S  (1/day)=3.e-6 (1x10-3 1/yr, Bektursunova,11)
-      K_FeS_ox: 0.001         #!Specific rate of oxidation of FeS with O2 (1/day)=0.001(3x10^5 1/(M yr),Van Cappellen Wang,96) 
-      K_DON_Fe: 0.00005      #!-0.0003 ! %  Specific rate of oxidation of DON with Fe3 (1/day)
-      K_PON_Fe: 0.00001      #!-0.0001 ! %  Specific rate of oxidation of PON with Fe3 (1/day)
-      K_FeS2_form: 0.000001  #!specific rate of FeS2 formation by FeS oxidation by H2S (1/day)=0.000009 (10^(-4) L/mol/s (Rickard-97)
-      K_FeS2_ox: 0.00044     #!specific rate of pyrite oxidation by O2  (1/uM/d)=4.38x10^(-4) 1/micromolar/day (Wijsman et al -2002). 
-      s_feox_fe2: 0.001      #!threshold of Fe2 reduciton
-      s_ferd_fe3: 0.01       #threshold of Fe3 reduciton  (uM Fe)
-#---- S---------
-      K_hs_ox: 0.5           #Specific rate of oxidation of H2S to S0  with O2 (1/day)
-      K_s0_ox: 0.02          #!-0.2    ! Specific rate of oxidation of S0 with O2
-      K_s23_ox: 0.01         #! Specific rate of oxidation of S2O3 with O2
-      K_s4_rd: 0.000005      #!-0.00001!  Specific rate of OM sulfate reduction with sulfate
-      K_s23_rd: 0.001        #!-0.001 ! Specific rate of OM sulfate reduction with thiosulfate
-      K_dispro: 0.001        #!-0.01  ! Specific rate of S0 dispropotionation
-      K_s0_no3: 0.9          #! Specific rate of oxidation of S0 with NO3
-      K_s23_no3: 0.01        #! Specific rate of oxidation of S2O3 with NO3
-      k_mnrdHS: 1.0          #!half sat. of Mn reduction (uM S)
-      k_ferdHS: 1.0          #!half sat. of Fe reduction (uM S)     
-#---- N---------!
-      K_DON_ox: 0.05         #!4 ! %  Specific rate of oxidation of DON with O2 (1/day) = 0.002(S,W,96)0.1-1(W,K,91)
-      K_PON_ox: 0.01        #!2 ! %  Specific rate of oxidation of PON with O2 (1/day) =0.002 (S,W,96)
-      Tda: 13.0              #! Temperature control coefficient for OM decay
-      beta_da: 20.0          #! Temperature control coefficient for OM decay
-      K_omox_o2: 1.0         # !  % !half sat. of o2 for OM mineralization (uM) 
-      K_PON_DON: 0.1         #! %  Specific rate of autolis of PON to DON (1/day)
-      KN42: 0.01             # %! Spec.rate of 1st st. of nitrification =0.01(Sawchuk,96)0.1(Gregoire,01)
-      KN23: 0.1              #%! Spec.rate of 2d st. of nitrification
-      KN32: 0.16             #%! Spec.rate of 1 stage of denitrif =0.16(Y,98),0.5(S&W,96),0.015(Gregoire,01)
-      KN24: 0.25             #! %! Spec.rate of 2 stage of denitrif =0.22 (Y,98)
-      k_omno_no3: 0.001      #!1 !  %!half sat. of no3 for OM denitr. (uM N)
-      k_omno_no2: 0.001      #!2 ! %!half sat. of no2 for OM denitr. (uM N)
-      KT: 0.8                #%! Spec.rate of thiodenitrification
-      k_annamox: 0.8         #!0.8   ! Spec.rate of anammox 
-#---- O2--------!  
-      O2s_nf: 4.488          #! half saturation for nitrification
-      O2s_dn: 10.0           #! half saturation for denitrification
-      s_omso_o2: 25.0        #!threshold of o2 for OM sulfate reduction
-      s_omso_no: 5.0         #!threshold of noX for OM sulfate reduction
-      k_mnoxO2: 2.0          #!half sat. of Mn oxidation (uM O) (Yakushev,2007)
-#---- C--------! 
-      k_CaCO3_diss: 3.0      #!CaCO3 dissollution rate constant (wide ranges are given in (Luff et al., 2001))
-      k_CaCO3_prec: 0.0002   #!CaCO3 precipitation rate constant (wide ranges are given in (Luff et al., 2001))
-#---- Si-------! 
-      k_Sipart_diss: 0.10    #! Si dissollution rate constant (1/day)=0.008 (Popova,04)
-#---- Bacteria-!       
-      k_Baae_gro: 0.08 #0.120      #!  Baae maximum specific growth rate (1/day)
-      k_Baae_mrt: 0.005      #!  Baae specific rate of mortality (1/day)
-      k_Baae_mrt_h2s: 0.899  #  !  Baae increased specific rate of mortality due to H2S (1/day)
-      limBaae: 2.0           #! Limiting parameter for nutrient consumprion by Baae 
-      k_Bhae_gro:  0.5       #!  Bhae maximum specific growth rate (1/day)
-      k_Bhae_mrt:  0.02      #!  Bhae specific rate of mortality (1/day)
-      k_Bhae_mrt_h2s: 0.799  #!  Bhae increased specific rate of mortality due to H2S (1/day)      
-      limBhae: 5.0           #! Limiting parameter for OM consumprion by Bhae 
-      k_Baan_gro: 0.08 # 0.120     #!0.011 !0.017    !  Baan maximum specific growth rate (1/day)
-      k_Baan_mrt: 0.012      #!  Baan specific rate of mortality (1/day)
-      limBaan: 2.0             #! Limiting parameter for nutrient consumprion by Baan 
-      k_Bhan_gro: 0.19        #!  Bhan maximum specific growth rate (1/day)
-      k_Bhan_mrt: 0.007      #!  Bhan specific rate of mortality (1/day)
-      k_Bhan_mrt_o2: 0.899   #!  Bhan increased specific rate of mortality due to O2 (1/day)
-      limBhan: 2.0           #! Limiting parameter for OM consumprion by Bhan 
-#---- Stoichiometric coefficients ----!
-      FekN: 26.5             #!Fe[uM]/N[uM] (Boudrau, )
-      MnkN: 13.25            #!Mn[uM]/N[uM] (Boudrau, )
-    coupling:
-      Kp1: niva_brom_eqconst/Kp1
-      Kp2: niva_brom_eqconst/Kp2
-      Kp3: niva_brom_eqconst/Kp3
-      Knh4: niva_brom_eqconst/Knh4
-      Kh2s1: niva_brom_eqconst/Kh2s1    
-      KSi: niva_brom_eqconst/KSi
-      Kc0: niva_brom_eqconst/Kc0
-      Hplus: niva_brom_carb/Hplus
-      Om_Ca: niva_brom_carb/Om_Ca
-      Om_Ar: niva_brom_carb/Om_Ar
-      CO3: niva_brom_carb/CO3
-      pCO2: niva_brom_carb/pCO2
-      Ca: niva_brom_carb/Ca
+      pHsolver: 1           # choice of pH solution method (0: Iterate with Munhoven (2013) approach (faster), 1: Iterate from first guess)
+#--------------------------------------------------------------------------
   niva_brom_carb:
+    initialization:
+      Alk: 2200.
+      DIC: 2300.
     coupling:
-      DIC: niva_brom_redox/DIC
       Kc0: niva_brom_eqconst/Kc0
       Kc1: niva_brom_eqconst/Kc1
       Kc2: niva_brom_eqconst/Kc2
@@ -153,57 +20,69 @@ instances:
       Kp3: niva_brom_eqconst/Kp3
       Knh4: niva_brom_eqconst/Knh4
       Kh2s1: niva_brom_eqconst/Kh2s1
+      Kh2s2: niva_brom_eqconst/Kh2s2
       KSi: niva_brom_eqconst/KSi
-      PO4: niva_brom_redox/PO4
-      NH4: niva_brom_redox/NH4
-      SO4: niva_brom_redox/SO4
+#    Constants calculated: Kc0 (Weiss, 1974), Kc1, Kc2 (Roy et al., 1993), Kw, Kp1,Kp2,Kp3 (DOE, 2004),
+#                           Kb (Dickson,1990), KSi(Millero,1995), Knh4, Kh2s1(Luff et al, 2001), Kh2s2(Volkov 1984)
+      PO4: niva_brom_bio/PO4
+      NH4: niva_brom_bio/NH4
+      DON: niva_brom_bio/DON
       Si: niva_brom_redox/Si
       H2S: niva_brom_redox/H2S
-      Alk: niva_brom_redox/Alk
+      Mn3: niva_brom_redox/Mn3
+      Mn4: niva_brom_redox/Mn4
+      Fe3: niva_brom_redox/Fe3
+      SO4: niva_brom_redox/SO4
+    parameters:
+      pHsolver: 0           # choice of pH solution method (0: Munhoven (2013) approach (default), 1: Iterate from first guess (old))
+#--------------------------------------------------------------------------
   niva_brom_bio:
     initialization:
+      O2: 200.
       Phy: 0.01
       Het: 0.01
+      PON: 0.01
+      DON: 0.0
+      NO3: 5.
+      PO4: 1.
+      NH4: 0.0
     parameters:
 # ---- Phy  ----------
-      KNF: 3. #1.5 #2.6        # Maximum specific growth rate
-      Iopt: 25.       # Optimal irradiance 
-      bm: 0.12        # Coefficient for growth dependence on t
-      cm: 1.4         # Coefficient for growth dependence on t
-      KFP: 0.10       # Specific rate of mortality
-      KFD: 0.05       # Specific rate of excretion
+      K_phy_gro: 4.5        # 2.8  Maximum specific growth rate (1/d) =0.9-1.3 (Savchuk, 2002), =3.(Gregoire, Lacroix, 2001) >!0.5 worked for Berre!< 
+      Iopt: 25.             # Optimal irradiance (W/m2) =50 (Savchuk, 2002)
+      bm: 0.12              # Coefficient for growth dependence on t
+      cm: 1.4               # Coefficient for growth dependence on t
+      K_phy_mrt: 0.14       # Specific rate of mortality, (1/d) =0.3-0.6 (Savchuk, 2002), =0.05 (Gregoire, Lacroix, 2001)   
+      K_phy_exc: 0.10       # Specific rate of excretion, (1/d) =0.01 (Burchard et al., 2006)
 # ----Het -----------
-      KFZ: 1.0         #! Max.spec. rate of grazing of Zoo on Phy 
-      KFY: 1.1         #! Half-sat.const.for grazing of Zoo on Phy for Phy/Zoo ratio
-      KPZ: 0.70        #! Max.spec.rate of grazing of Zoo on POP
-      KPP: 0.2         #! Half-sat.const.for grazing of Zoo on POP for POP/Zoo  ratio
-      KZN: 0.02        #! Specific respiration rate
-      Uz: 0.5          #! Food absorbency for Zoo
-      Hz: 0.50         #! Ratio betw. diss. and part. excretes of Zoo 
-      limGrazBac:  2.  #! Limiting parameter for bacteria grazing by Zoo
+      K_het_phy_gro: 1.0    #! Max.spec. rate of grazing of Zoo on Phy, (1/d), =0.9 (Gregoire, Lacroix, 2001), =1.5 (Burchard et al., 2006)    
+      K_het_phy_lim: 1.0    #! Half-sat.const.for grazing of Zoo on Phy for Phy/Zoo ratio
+      K_het_pom_gro: 0.40   #! Max.spec.rate of grazing of Zoo on POP and bacteria, (1/d), =1.2 (Burchard et al., 2006)
+      K_het_pom_lim: 0.2    #! Half-sat.const.for grazing of Zoo on POP for POP/Zoo  ratio
+      K_het_res: 0.02       #! Specific respiration rate =0.02 (Yakushev et al., 2007)
+      K_het_mrt: 0.1        #! %! Maximum specific rate of mortality of Zoo (1/d) =0.05 (Gregoire, Lacroix, 2001)  
+      Uz: 0.5               #! Food absorbency for Zoo (nd) =0.5-0.7 (Savchuk, 2002)
+      Hz: 0.50              #! Ratio betw. diss. and part. excretes of Zoo (nd), =0.5 (Gregoire, Lacroix, 2001)  
+      limGrazBac:  2.       #! Limiting parameter for bacteria grazing by Zoo, =2. (Yakushev et al., 2007)
 # ----N -------------
-      KNO3: 0.12        #! Half-sat.const.for uptake of NO3+NO2 =0.5 (Gregoire,01)
-      KNH4: 0.02       #! Half-sat.const.for uptake of NH4=0.2 (Gregoire,01)
+      K_nox_lim: 0.05       #! Half-sat.const.for uptake of NO3+NO2 (uM) =0.5 (Gregoire, Lacroix, 2001)
+      K_nh4_lim: 0.02       #! Half-sat.const.for uptake of NH4 (uM) =0.2 (Gregoire, Lacroix, 2001)
+      K_psi: 1.46      #! Strength of NH4 inhibition of NO3 uptake constant (uM-1) =1.46_rk (Gregoire, Lacroix, 2001)
+      K_nfix: 0.5      #! Maximum specific rate of N-fixation (1/d) =0.5 (Savchuk, 2002)
 # ----P ------------
-      KPO4: 0.012      #! Half-sat. constant for uptake of PO4 by Phy
-# ----P ------------
-      KSi_lim: 0.02    #! Half-sat. constant for uptake of Si by Phy 
+      K_po4_lim: 0.02       #! Half-sat. constant for uptake of PO4 by Phy
+# ----Si------------
+      K_si_lim: 0.1     #! Half-sat. constant for uptake of Si_lim by Phy
 # ----Sinking-------
-      Wphy: 0.01 #0.1        #!Rate of sinking of Phy m d-1 !! Wphy=1 Savchuk, Wulff,1996)
-      Whet: 0.01 #1.0        #!Rate of sinking of Het m d-1 
+      Wsed: 5.0        #! Rate of sinking of detritus (m/d), =0.4 (Savchuk, 2002), =5. (Gregoire, Lacroix, 2001)
+      Wphy: 0.4        #! Rate of sinking of Phy (m/d), =0.1-0.5 (Savchuk, 2002)
+      Whet: 1.0        #! Rate of sinking of Het (m/d), =1. (Yakushev et al., 2007)
 # ---- Stoichiometric coefficients ----
-      NkP: 16.0        #!N[uM]/P[uM]
-      OkN: 6.625       #!O[uM]/N[uM]
-      CkN: 8.0         #!C[uM]/N[uM]  
-      SikN: 2.0        #!Si[uM]/N[uM] (Ivanenkov, 1979)   
+      r_n_p: 16.0      #! N[uM]/P[uM]
+      r_o_n: 6.625     #! O2[uM]/N[uM]
+      r_c_n: 8.0       #! C[uM]/N[uM]  
+      r_si_n: 1.0      #! Si[uM]/N[uM]   
     coupling:
-      Alk: niva_brom_redox/Alk
-      O2: niva_brom_redox/O2
-      NH4: niva_brom_redox/NH4
-      NO3: niva_brom_redox/NO3
-      PO4: niva_brom_redox/PO4
-      PON: niva_brom_redox/PON
-      DON: niva_brom_redox/DON
       NO2: niva_brom_redox/NO2
       H2S: niva_brom_redox/H2S
       Baan: niva_brom_redox/Baan
@@ -212,12 +91,184 @@ instances:
       Bhan: niva_brom_redox/Bhan
       Si: niva_brom_redox/Si
       Sipart: niva_brom_redox/Sipart
-      DIC: niva_brom_redox/DIC
+      DIC: niva_brom_carb/DIC
+      Alk: niva_brom_carb/Alk
       Hplus: niva_brom_carb/Hplus
       Kp1: niva_brom_eqconst/Kp1
       Kp2: niva_brom_eqconst/Kp2
       Kp3: niva_brom_eqconst/Kp3
       Knh4: niva_brom_eqconst/Knh4
       KSi: niva_brom_eqconst/KSi
+#--------------------------------------------------------------------------
+  niva_brom_redox:
+    initialization:
+      Mn2: 0.0
+      Mn3: 0.0
+      Mn4: 0.0
+      MnS: 0.0
+      MnCO3: 0.0
+      Fe2: 0.0
+      Fe3: 0.0
+      FeS: 0.0
+      FeCO3: 0.0
+      NO2: 0.0
+      Si: 0.0
+      Sipart: 0.0
+      H2S: 0.0	   
+      S0:  0.0 
+      S2O3: 0.0
+      SO4: 25000.
+      Baae: 0.01
+      Bhae: 0.01 
+      Baan: 0.01
+      Bhan: 0.01
+      CaCO3: 5.0
+      CH4: 0.001      
+      FeS2: 0.0
+    parameters:
+# ---- Model parameters ------     
+      Wbact: 0.4         #! Rate of sinking of bacteria (Bhae,Baae,Bhan,Baan) (1/d), (Yakushev et al.,2007)
+      Wm: 10.0           #! Rate of accelerated sinking of particles with settled metal hydroxides (1/d), (Yakushev et al.,2007)
+# specific rates of biogeochemical processes
+#---- Mn---------
+      K_mn_ox1: 0.1        #! Specific rate of oxidation of Mn2 to Mn3 with O2 (1/d).
+      K_mn_ox2: 0.2        #! Specific rate of oxidation of Mn3 to Mn4 with O2 (1/d)
+      K_mn_rd1: 0.5        #! Specific rate of reduction of Mn4 to Mn3 with H2S (1/d)
+      K_mn_rd2: 1.0        #! Specific rate of reduction of Mn3 to Mn2 with H2S (1/d)
+      K_mns: 1500.         #! Conditional equilibrium constant for MnS from Mn2 with H2S (M)
+      K_mns_diss: 0.0005   #! Specific rate of dissolution of MnS to Mn2 and H2S (1/d)   
+      K_mns_form: 0.00001  #! Specific rate of formation of MnS from Mn2 with H2S (1/d)            
+      K_mnco3: 1.          #! Conditional equilibrium constant %  1.8e-11 (M) (Internet)      1 uM2 for Mn2+CO3->MnCO3 (Meysman,2003)
+      K_mnco3_diss: 7.e-4  #! Specific rate of dissolution of MnCO3 (1/d) =6.8e-7 (2.5 X 10-1 yr-1 (vanCap06) !1x10-4 yr-1) (Hunter et al, 98)
+      K_mnco3_form: 3.e-4  #! Specific rate of formation of MnCO3 (1/d) =2.7e-7  (1. X 10-4 yr-1 (vanCap06)!1x10-4 yr-1) (Hunter et al, 98))
+      K_mnco3_ox: 0.0027   #! Specific rate of oxidation of MnCO3 with O2 (1/d)=0.0027  ( 1x10^(-6) M/yr (Wang-Van Cappellen-96).
+      K_DON_mn: 0.001      #! Specific rate of oxidation of DON with Mn4 (1/d)
+      K_PON_mn: 0.001      #!  Specific rate of oxidation of PON with Mn4 (1/d)
+      s_mnox_mn2: 0.01     #! threshold of Mn2 oxidation (uM Mn) (Yakushev et al.,2007)
+      s_mnox_mn3: 0.01     #! threshold of Mn3 oxidation (uM Mn) (Yakushev et al.,2007)
+      s_mnrd_mn4: 0.01     #! threshold of Mn4 reduciton (uM Mn) (Yakushev et al.,2007)
+      s_mnrd_mn3: 0.01     #! threshold of Mn3 reduciton  (uM Mn) (Yakushev et al.,2007)
+#---- Fe---------
+      K_fe_ox1: 0.5          #!Specific rate of oxidation of Fe2 to Fe3  with O2 (1/d), =4. (Konovalov et al., 2006)
+      K_fe_ox2: 0.001        #!0.1! Specific rate of oxidation of Fe2 to Fe3  with MnO2 (1/d) =0.74 (Konovalov et al., 2006); 3x10^6 1/(M yr) is estimated in Van Cappellen-Wang-96 
+      K_fe_rd: 0.5           #!0.5 !-2    ! Specific rate of reduction of Fe3 to Fe2  with H2S (1/day) *=0.05 (Konovalov et al., 2006)
+      K_fes: 2510.0          #!FeS equilibrium constant (Solubility Product Constant) (uM)=2510  ( 2.51x10-6 mol cm-3, Bektursuniva,11)  
+      K_fes_form: 5.e-4      #!Specific rate of precipitation of FeS from Fe2 with H2S (1/day)=1.e-5 (4x10-3 1/yr, Bektursunova,11)
+      K_fes_diss: 1.e-6      #!Specific rate of dissollution of FeS to Fe2 and H2S  (1/day)=3.e-6 (1x10-3 1/yr, Bektursunova,11)
+      K_fes_ox: 0.001        #!Specific rate of oxidation of FeS with O2 (1/day)=0.001(3x10^5 1/(M yr),( Van Cappellen, Wang, 1996)
+      K_DON_fe: 0.00005      #!-0.0003 ! %  Specific rate of oxidation of DON with Fe3 (1/day)
+      K_PON_fe: 0.00001      #!-0.0001 ! %  Specific rate of oxidation of PON with Fe3 (1/day)
+      K_fes2_form: 0.000001  #!specific rate of FeS2 formation by FeS oxidation by H2S (1/day)=0.000009 (10^(-4) L/mol/s (Rickard-97)
+      K_fes2_ox: 0.00044     #!specific rate of pyrite oxidation by O2  (1/uM/d)=4.38x10^(-4) 1/micromolar/day (Wijsman et al -2002). 
+      s_feox_fe2: 0.001      #!threshold of Fe2 reduciton
+      s_ferd_fe3: 0.01       #threshold of Fe3 reduciton  (uM Fe)
+      K_feco3: 15.           #!10. !2.e-2 ! Conditional equilibrium constant %  1.8e-11 (M) (Internet)      1 uM2 for Mn2+CO3->FeCO3 (Meysman,2003)
+      K_feco3_diss: 7.e-4    #!1.e-6 ! 6.8e-4 !0.02 ! Specific rate of dissolution of FeCO3 (1/day)=6.8e-7   !2.5 X 10-1 yr-1 (vanCap06) !1x10-4 yr-1 (Hunter et al, 98)
+      K_feco3_form: 3.e-4    #!2.e-8 !2.7e-7 !1.e-10   %  Specific rate of formation of FeCO3 (1/day)=2.7e-7  !! 1. X 10-4 yr-1(vanCap06)!1x10-4 yr-1 (Hunter et al, 98)
+      K_feco3_ox: 0.0027     #!Specific rate of oxidation of FeCO3 with O2 (1/day)=0.0027  ( 1x10^(-6) M/yr ( Wang-Van Cappellen-96).
+#---- S---------
+      K_hs_ox: 0.5           #! Specific rate of oxidation of H2S to S0  with O2 (1/d),  =0.1 (Gregoire, Lacroix, 2001)
+      K_s0_ox: 0.02          #! Specific rate of oxidation of S0 with O2
+      K_s2o3_ox: 0.01        #! Specific rate of oxidation of S2O3 with O2
+      K_so4_rd: 0.000005     #!-0.00001!  Specific rate of OM sulfate reduction with sulfate
+      K_s2o3_rd: 0.001       #!-0.001 ! Specific rate of OM sulfate reduction with thiosulfate
+      K_s0_disp: 0.001       #!-0.01  ! Specific rate of S0 dispropotionation
+      K_s0_no3: 0.9          #! Specific rate of oxidation of S0 with NO3
+      K_s2o3_no3: 0.01       #! Specific rate of oxidation of S2O3 with NO3
+      K_mnrd_hs: 1.0         #! half sat. of Mn reduction (uM S)
+      K_ferd_hs: 1.0         #! half sat. of Fe reduction (uM S)     
+#---- N---------!
+      K_DON_ox: 0.5          #! Specific rate of oxidation of DON with O2 (1/d) = 0.1(Savchuk, 2002) 
+      K_PON_ox: 0.001        #! Specific rate of oxidation of PON with O2 (1/d) =0.002 (Savchuk, 2002), =0.07 (Gregoire, Lacroix, 2001)
+      Tda: 13.0              #! Temperature control coefficient for OM decay
+      beta_da: 20.0          #! Temperature control coefficient for OM decay
+      K_omox_o2: 1.0         #! Half sat. of o2 for OM mineralization (uM) 
+      K_PON_DON: 0.1         #! Specific rate of Autolysis of PON to DON (1/d), =0.02 (Burchard et al., 2006)
+      K_nitrif1: 0.01        #! Spec.rate of 1st st. of nitrification = 0.1(Savchuk, 2002) =0.1 (Gregoire, Lacroix, 2001)
+      K_nitrif2: 0.1         #! Spec.rate of 2d st. of nitrification
+      K_denitr1: 0.3         #! Spec.rate of 1 stage of denitrif =0.16 (Yakushev,1998),= 0.5(Savchuk, 2002),= 0.015(Gregoire, Lacroix, 2001)
+      K_denitr2: 0.20        #! Spec.rate of 2 stage of denitrif =0.22 (Y,98)
+      K_omno_no3: 0.001      #! Half sat. of no3 for OM denitr. (uM N) 
+      K_omno_no2: 0.001      #! Half sat. of no2 for OM denitr. (uM N)
+      K_hs_no3: 0.8          #! Spec.rate of thiodenitrification (1/d), =.015 (Gregoire, Lacroix, 2001)  
+      K_annamox: 0.8         #! Spec.rate of Anammox (1/d),  (Gregoire, Lacroix, 2001)  
+#---- O2--------!  
+      O2s_nf: 5.             #! threshold of O2  saturation for nitrification, (uM), =10. (Gregoire, Lacroix, 2001) 
+      O2s_dn: 10.0           #! threshold of O2 for denitrification, anammox, Mn reduction (uM O2), =40 (0.72 mgO2/l) (Savchuk, 2002)
+      s_omox_o2: 0.01        #! threshold of o2 for OM mineralization
+      s_omno_o2: 25.0        #! threshold of o2 for OM denitrification 
+      s_omso_o2: 25.0        #! threshold of o2 for OM sulfate reduction
+      s_omso_no3: 5.0        #! threshold of noX for OM sulfate reduction
+      K_mnox_o2: 2.0         #! half sat. of Mn oxidation (uM O) (Yakushev,2007)
+#---- C--------! 
+      K_caco3_diss: 3.0      #! CaCO3 dissollution rate constant (wide ranges are given in (Luff et al., 2001))
+      K_caco3_form: 0.0002   #! CaCO3 precipitation rate constant (wide ranges are given in (Luff et al., 2001))
+      K_DON_ch4: 0.00014     #! Specific rate of methane production from DON (Lopes et al., 2011)
+      K_PON_ch4: 0.00014     #! Specific rate of methane production from PON (Lopes et al., 2011)
+      K_ch4_o2: 0.14         #! Specific rate of oxidation of CH4 with O2 (0.14 1/day Lopes et al., 2011)
+      K_ch4_so4: 0.0000274   #! Specific rate of oxidation of CH4 with SO4 (1/uM/day) (0.0274 m3 /mol-1 day-1 Lopes et al., 2011)
+      s_omch_so4: 30.        #! threshold of of SO4 for methane production from OM (Lopes et al., 2011)
+#---- Si-------! 
+      K_sipart_diss: 0.008   #! Si dissollution rate constant (1/day)=0.008 (Popova,04)
+#---- Bacteria-!       
+      K_Baae_gro: 0.050      #!  Baae maximum specific growth rate (1/day)
+      K_Baae_mrt: 0.005      #!  Baae specific rate of mortality (1/day)
+      K_Baae_mrt_h2s: 0.899  #!  Baae increased specific rate of mortality due to H2S (1/day)
+      limBaae: 2.0           #! Limiting parameter for nutrient consumprion by Baae 
+      K_Bhae_gro:  0.05       #!  Bhae maximum specific growth rate (1/day)
+      K_Bhae_mrt:  0.02      #!  Bhae specific rate of mortality (1/day)
+      K_Bhae_mrt_h2s: 0.799  #!  Bhae increased specific rate of mortality due to H2S (1/day)      
+      limBhae: 5.0           #! Limiting parameter for OM consumprion by Bhae 
+      K_Baan_gro: 0.050      #!  Baan maximum specific growth rate (1/day)
+      K_Baan_mrt: 0.012      #!  Baan specific rate of mortality (1/day)
+      limBaan: 2.0           #! Limiting parameter for nutrient consumprion by Baan 
+      K_Bhan_gro: 0.020      #!  Bhan maximum specific growth rate (1/day)
+      K_Bhan_mrt: 0.007      #!  Bhan specific rate of mortality (1/day)
+      K_Bhan_mrt_o2: 0.899   #!  Bhan increased specific rate of mortality due to O2 (1/day)
+      limBhan: 2.0           #! Limiting parameter for OM consumprion by Bhan 
+#---- Stoichiometric coefficients ----!
+      r_fe_n: 26.5           #! Fe[uM]/N[uM] (Boudrau, 1996)
+      r_mn_n: 13.25          #! Mn[uM]/N[uM] (Boudrau, 1996)
+      f:  0.66               #! conversion factor relating solid and dissolved species concentrations [-]
+      r_fe3_p: 2.7           #! Fe[uM]/P[uM] partitioning coeff. for Fe oxide (Yakushev, 2007)
+      r_mn3_p: 0.67          #! Mn[uM]/P[uM] complex stoichiometric coeff. for Mn(III) (Yakushev, 2007)
+      r_fe3_si: 3.           #! Fe[uM]/Si[uM] partitioning coeff. for Fe oxide
+    coupling:
+      O2: niva_brom_bio/O2    #  O2: niva_oxydep/oxy
+      NH4: niva_brom_bio/NH4
+      NO3: niva_brom_bio/NO3
+      PO4: niva_brom_bio/PO4
+      PON: niva_brom_bio/PON
+      DON: niva_brom_bio/DON
+      Wsed: niva_brom_bio/Wsed
+      Kp1: niva_brom_eqconst/Kp1
+      Kp2: niva_brom_eqconst/Kp2
+      Kp3: niva_brom_eqconst/Kp3
+      Knh4: niva_brom_eqconst/Knh4
+      Kh2s1: niva_brom_eqconst/Kh2s1    
+      KSi: niva_brom_eqconst/KSi
+      Kc0: niva_brom_eqconst/Kc0
+      Alk: niva_brom_carb/Alk
+      DIC: niva_brom_carb/DIC
+      Hplus: niva_brom_carb/Hplus
+      Om_Ca: niva_brom_carb/Om_Ca
+      Om_Ar: niva_brom_carb/Om_Ar
+      CO3: niva_brom_carb/CO3
+      pCO2: niva_brom_carb/pCO2
+      Ca: niva_brom_carb/Ca
+# REFERENCES:
+#  Burchard H., Bolding K., Kühn W., Meister A., Neumann T. and Umlauf L., 2006. Description of a flexible and extendable physical–biogeochemical model system for the water column. Journal of Marine Systems, 61(3), 180-211.
+#  Dickson AG. 1990. Thermodynamics of the dissociation of boric acid in synthetic seawater from 273.15 to 318.15 K. Deep-Sea Research Part a-Oceanographic Research Papers. 37:755-766
+#  DOE (1994) Handbook of methods for the analysis of the various parameters of the carbon dioxide system in sea water; version 2, A. G. Dickson & C. Goyet, eds., ORNL/CDIAC-74.
+#  Gregoire M. and Lacroix G., 2001. Study of the oxygen budget of the Black Sea waters using a 3D coupled hydrodynamical–biogeochemical model. Journal of marine systems, 31(1), pp.175-202.
+#  Konovalov, S.K., Murray, J.W., Luther, G.W.,  Tebo, B.M., 2006. Processes controlling the Redox budget for oxic/anoxic water column of the Black Sea. Deep Sea Research (II) 53: 1817-1841. 
+#  Millero FJ , 1995 Thermodynamics of the carbon dioxide system in the oceans. Geochimica et Cosmochimica Acta 59 (4), 661-677
+#  Luff R., Haeckel M., and Wallmann K. 2001. Robust and fast FORTRAN and MATLAB libraries to calculate pH distributions in marine systems, Comput. Geosci., 27, 157–169
+#  Savchuk O. 2002. Nutrient biogeochemical cycles in the Gulf of Riga: scaling up field studies with a mathematical model. J. Mar. Syst. 32: 253-280.
+#  Volkov II. 1984. Geokhimiya Sery v Osadkakh Okeana (Geochemistry of Sulfur in Ocean Sedi-ments), Nauka, Moscow, USSR.
+#  Van Cappellen P., Wang, Y. F. 1996: Cycling of iron and manganese in surface sediments: A general theory for the coupled transport and reaction of carbon, oxygen, nitrogen, sulfur, iron, and manganese, Am. J. Sci., 296(3), 197–243, doi:10.2475/ajs.296.3.197, 1996.
+#  Weiss RF. 1974 Carbon dioxide in water and seawater: the solubility of a non-ideal gas.Marine Chemistry 2:203-215.
+#  Yakushev E., Neretin L., 1997. One-dimensional modelling of nitrogen and sulphur cycles in the aphotic zones of the Black Sea and Arabian Sea. Global Biogeochem. Cycles 11 Ž3.,401–414.
+#  Yakushev EV, Pollehne F., Jost G., Kuznetsov I., Schneider B., Umlauf L. 2007. Analysis of the water column oxic/anoxic interface in the Black and Baltic seas with a numerical model, Mar. Chem., 107(3), 388–410.
 # IMPORTANT !!!! _ <TAB> is NOT allowed here, used <Space> only !!!!
 

@@ -408,8 +408,10 @@ contains
             do ip = 1, size(model%diagnostic_variables)
                 if (model%diagnostic_variables(ip)%save) then
                     temp_matrix = fabm_get_bulk_diagnostic_data(model,ip)
-                    call check_err(nf90_put_var(self%nc_id, self%parameter_id_diag(ip),&
+                    if (maxval(abs(temp_matrix)).lt.1.0E37) then
+                        call check_err(nf90_put_var(self%nc_id, self%parameter_id_diag(ip),&
                                    temp_matrix(first_lvl:last_lvl), start, edges))
+                    end if
                 end if
             end do
             call check_err(nf90_put_var(self%nc_id, self%t_id, tem2(first_lvl:last_lvl, julianday), start, edges))

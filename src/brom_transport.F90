@@ -198,13 +198,13 @@ contains
         freq_sed    = get_brom_par("freq_sed ")
         last_day    = get_brom_par("last_day")
 
-        i_O2        = find_index(par_name, 'niva_brom_redox_O2')              
-        i_NO3       = find_index(par_name, 'niva_brom_redox_NO3')             
+        i_O2        = find_index(par_name, 'niva_brom_bio_O2')              
+        i_NO3       = find_index(par_name, 'niva_brom_bio_NO3')             
         i_NO2       = find_index(par_name, 'niva_brom_redox_NO2')            
-        i_NH4       = find_index(par_name, 'niva_brom_redox_NH4')         
-        i_DON       = find_index(par_name, 'niva_brom_redox_DON')         
-        i_PON       = find_index(par_name, 'niva_brom_redox_PON')            
-        i_PO4       = find_index(par_name, 'niva_brom_redox_PO4')      
+        i_NH4       = find_index(par_name, 'niva_brom_bio_NH4')         
+        i_DON       = find_index(par_name, 'niva_brom_bio_DON')         
+        i_PON       = find_index(par_name, 'niva_brom_bio_PON')            
+        i_PO4       = find_index(par_name, 'niva_brom_bio_PO4')      
         i_Si        = find_index(par_name, 'niva_brom_redox_Si')      
         i_Mn4       = find_index(par_name, 'niva_brom_redox_Mn4')           
         i_Fe3       = find_index(par_name, 'niva_brom_redox_Fe3')          
@@ -315,7 +315,7 @@ contains
             
             !timesteps in the course of a day
             do id = 1, idt
-                
+            
                 !Kinetic processes (time integration is needed)
                 dcc = 0.
                 call fabm_do(model, 1, lev_max, dcc)
