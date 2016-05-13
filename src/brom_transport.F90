@@ -121,7 +121,7 @@ contains
         !auxiliary variables
         density = get_brom_par("density")
         !dbar, roughly equivalent to depth in m+ 1 bar atmospheric pressure
-        pressure = z + 10        
+        pressure = z + 10     
         ! Send pointers to state variable data to FABM
         do i = 1, par_max
             call fabm_link_bulk_state_data(model, i, cc(:, i))
