@@ -19,9 +19,9 @@ instances:
       Knh4: niva_brom_eqconst/Knh4
       Kh2s: niva_brom_eqconst/Kh2s
       KSi: niva_brom_eqconst/KSi
-#      kso4: niva_brom_eqconst/kso4
-#      kflu: niva_brom_eqconst/kflu
-#      ktot_free: niva_brom_eqconst/ktot_free
+      kso4: niva_brom_eqconst/kso4
+      kflu: niva_brom_eqconst/kflu
+      tot_free: niva_brom_eqconst/tot_free
 #    Constants calculated: Kc0 (Weiss, 1974), Kc1, Kc2 (Roy et al., 1993), Kw, Kp1,Kp2,Kp3 (DOE, 2004),
 #                           Kb (Dickson,1990), KSi(Millero,1995), Knh4, Kh2s(Luff et al, 2001)
       PO4: niva_brom_bio/PO4
