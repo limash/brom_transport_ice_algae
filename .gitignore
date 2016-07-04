@@ -1,4 +1,5 @@
 build/
 *.dat
 data/output*.nc
+src/tags
 *~

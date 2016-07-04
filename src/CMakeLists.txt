@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 # Create main project.
-project(brom_transport Fortran)
+project(brom-transport Fortran)
 
 # Specify default build type for single-type systems (not VS)
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -13,7 +13,7 @@ endif()
 
 # Customize compiler flags
 if(${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU")
-    set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none")
+  set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none")
 elseif(${CMAKE_Fortran_COMPILER_ID} STREQUAL "Cray")
   set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -N 1023")
 elseif(${CMAKE_Fortran_COMPILER_ID} STREQUAL "Intel")
@@ -43,46 +43,29 @@ set(FABM_LIBRARIES fabm)
 set(FABM_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/fabm/modules)
 
 add_executable(brom WIN32
+               brom-transport.F90
                calculate.F90
-               io_netcdf.F90
-               main.F90
+               ice_algae.F90
                io_ascii.F90
-               brom_transport.F90
-               ice_algae.F90)
+               io_netcdf.F90
+               main.F90)
+
 set_property(TARGET brom APPEND PROPERTY INCLUDE_DIRECTORIES "${FABM_INCLUDE_DIRS}")
 set_property(TARGET brom APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${FABM_INCLUDE_DIRS}")
 set_property(TARGET brom PROPERTY Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/modules)
 set_property(TARGET brom APPEND PROPERTY INCLUDE_DIRECTORIES "${FABM_INCLUDE_DIRS}")
 
-#if(WIN32)
-#set_property(TARGET brom APPEND PROPERTY COMPILE_FLAGS "/nofpp")
-#endif()
-
 target_link_libraries(brom ${FABM_LIBRARIES})
 target_link_libraries(brom "${NetCDF_LIBRARIES}")
+
+if(${CMAKE_Fortran_COMPILER_ID} STREQUAL "Intel")
+  if(WIN32)
+    set_property(TARGET brom APPEND PROPERTY COMPILE_FLAGS "/nofpp")
+    target_compile_options(brom PRIVATE /nothreads /libs:static /libs:qwin)
+  endif()
+endif()
+
 if (NetCDF_STATIC_MSVC_BUILD)
   set_property(TARGET brom PROPERTY LINK_FLAGS_DEBUG "/NODEFAULTLIB:\"libcmt\"")
   set_property(TARGET brom PROPERTY LINK_FLAGS_DEBUG "/NODEFAULTLIB:\"libcmtd\"")
-endif()
-
-if(WIN32)
-target_compile_options(brom PRIVATE /nothreads /libs:static /libs:qwin)
-endif()
-
-# Set default installation prefix.
-if(WIN32)
-  if(DEFINED ENV{LOCALAPPDATA})
-    set(DEFAULT_PREFIX "$ENV{LOCALAPPDATA}/brom-ice")
-  else()
-    set(DEFAULT_PREFIX "$ENV{APPDATA}/brom-ice")
-  endif()
-else()
-  set(DEFAULT_PREFIX "$ENV{HOME}/local/brom-ice")
-endif()
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  # Still on CMake default - override with our own default.
-  set(CMAKE_INSTALL_PREFIX ${DEFAULT_PREFIX} CACHE PATH "Directory to install BROM in" FORCE)
-else()
-  # Just set the doc string for the variable.
-  set(CMAKE_INSTALL_PREFIX ${DEFAULT_PREFIX} CACHE PATH "Directory to install BROM in")
 endif()

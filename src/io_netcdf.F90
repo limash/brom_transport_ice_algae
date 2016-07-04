@@ -60,32 +60,35 @@ module io_netcdf
 
 contains
 
-    subroutine input_netcdf(file_name, z, dz, kz_bio, lev_max, t, s, AKs, hice, boundary_bbl_sediments, &
-        boundary_water_bbl, width_bbl, resolution_bbl, width_bioturbation, resolution_bioturbation, &
-        width_sediments, resolution_sediments, year, ice_area, heat_flux, snow_thick, t_ice)
+    subroutine input_netcdf(file_name, z, dz, kz_bio, lev_max, t, s, AKs, hice, &
+        boundary_bbl_sediments, boundary_water_bbl, width_bbl, resolution_bbl, &
+        width_bioturbation, resolution_bioturbation, width_sediments, &
+        resolution_sediments, year, ice_area, heat_flux, snow_thick, t_ice)
 
-        real(rk), intent(in) :: width_bbl, resolution_bbl, width_bioturbation, resolution_bioturbation, &
-            width_sediments, resolution_sediments
+        real(rk), intent(in) :: width_bbl, resolution_bbl, width_bioturbation, &
+            resolution_bioturbation, width_sediments, resolution_sediments
 
         ! This is the name of the data file we will read.
         character (len = *), intent(in)                         :: file_name
         real(rk), dimension (:, :), allocatable, intent(out)    :: t, s, AKs
         real(rk), dimension (:), allocatable, intent(out)       :: z, dz, kz_bio, hice
-        real(rk), dimension (:), allocatable, intent(out)       :: ice_area, heat_flux, snow_thick, t_ice
-        integer, intent(out)                                    :: lev_max, boundary_bbl_sediments, boundary_water_bbl
-        integer, intent(in)                                     :: year
+        real(rk), dimension (:), allocatable, intent(out)       :: ice_area, heat_flux
+        real(rk), dimension (:), allocatable, intent(out)       :: snow_thick, t_ice
+        integer, intent(out) :: lev_max, boundary_bbl_sediments, boundary_water_bbl
+        integer, intent(in)  :: year
 
-        integer                                     :: ncid, i, j, range, number_of_days
-        integer                                     :: lat_rec, lon_rec, time_rec, h_rec
-        integer                                     :: t_varid, s_varid, hice_varid, AKs_varid, depth_varid
-        integer                                     :: ice_area_id, heat_flux_id, snow_thick_id, t_ice_id
-        integer, dimension(nf90_max_var_dims)       :: dimids
-        real(rk), allocatable, dimension(:, :)      :: t_temp, s_temp, AKs_temp
-        real(rk), allocatable, dimension(:)         :: z_temp, hice_temp
-        real(rk), allocatable, dimension(:)         :: ice_area_temp, heat_flux_temp, snow_thick_temp, t_ice_temp
+        integer              :: ncid, i, j, range, number_of_days
+        integer              :: lat_rec, lon_rec, time_rec, h_rec
+        integer              :: t_varid, s_varid, hice_varid, AKs_varid, depth_varid
+        integer              :: ice_area_id, heat_flux_id, snow_thick_id, t_ice_id
+        integer, dimension(nf90_max_var_dims)  :: dimids
+        real(rk), allocatable, dimension(:, :) :: t_temp, s_temp, AKs_temp
+        real(rk), allocatable, dimension(:)    :: z_temp, hice_temp
+        real(rk), allocatable, dimension(:)    :: ice_area_temp, heat_flux_temp
+        real(rk), allocatable, dimension(:)    :: snow_thick_temp, t_ice_temp
 
-        integer                                     :: bbl_count, bioturbation_count, sediments_count
-        real(rk)                                    :: l !auxiliary parameter
+        integer   :: bbl_count, bioturbation_count, sediments_count
+        real(rk)  :: l !auxiliary parameter
 
         call check_err(nf90_open(FILE_NAME, NF90_NOWRITE, ncid))
         call check_err(nf90_inq_varid(ncid, "temp", t_varid))
@@ -102,7 +105,8 @@ contains
         call check_err(nf90_inquire_dimension(ncid, dimids(2), len = time_rec))
         boundary_water_bbl = h_rec + 2
 
-        bbl_count = int(width_bbl/resolution_bbl) + h_rec + 1 ! +1 - for surface with depth 0 layer
+        ! +1 - for surface with depth 0 layer
+        bbl_count = int(width_bbl/resolution_bbl) + h_rec + 1
         bioturbation_count = int(width_bioturbation/resolution_bioturbation) + bbl_count
         sediments_count = int(width_sediments/resolution_sediments) + bioturbation_count
         !temporary variables
@@ -139,7 +143,9 @@ contains
         call check_err(nf90_get_var(ncid, depth_varid, z_temp))
 
         !creating grid
-        range = 352 !adding 352 days to initial data (12:00 15 january 1980 becomes 12:00 1 january 1981)
+        !adding 352 days to initial data
+        !(12:00 15 january 1980 becomes 12:00 1 january 1981)
+        range = 352
         if (year < 1981 .and. year > 2012) then
             print *, "Wrong year, it should be between 1981 and 2012"
             stop
@@ -156,7 +162,7 @@ contains
         !i - days from data file
         do i = 1, 365
             !temperature, salinity, turbulence coefficients in water column
-            do j = h_rec, 1, -1  
+            do j = h_rec, 1, -1
                 t(h_rec - j + 2, i) = t_temp(j, i + range)
                 s(h_rec - j + 2, i) = s_temp(j, i + range)
                 AKs(h_rec - j + 2, i) = AKs_temp(j, i + range)
@@ -197,7 +203,7 @@ contains
         end do
         z(1) = 0.
         kz_bio(1) = 0.
-        !writing depth and kz_bio to array in bbl 
+        !writing depth and kz_bio to array in bbl
         do j = h_rec + 2, bbl_count
             z(j) = z(j - 1) + resolution_bbl
             kz_bio(j) = 0.
@@ -213,7 +219,7 @@ contains
         do j = bioturbation_count + 1, sediments_count
             l = (j - bioturbation_count + 1) / 2
             z(j) = z(j - 1) + resolution_sediments
-            kz_bio(j) = 1.E-11*exp(-l) 
+            kz_bio(j) = 1.E-11*exp(-l)
         end do
         !deepest lvl & dz array calculating
         lev_max = size(z)
@@ -271,7 +277,7 @@ contains
         self%first = .true.
         self%nc_id = -1
         call check_err(nf90_create(fn, NF90_CLOBBER, self%nc_id))
-        
+
         !define the dimensions
         call check_err(nf90_def_dim(self%nc_id, "z", nlev, z_dim_id))
         call check_err(nf90_def_dim(self%nc_id, "time", time_len, time_dim_id))
@@ -383,7 +389,7 @@ contains
         integer                                 :: edges(2), start(2), start_time(1), edges_time(1)
         real(rk)                                :: temp_matrix(lev_max)
         real                                    :: foo(1)
-            
+
         !write data
         edges(1) = last_lvl - first_lvl + 1
         edges(2) = 1
@@ -400,7 +406,7 @@ contains
         foo(1) = real(julianday)
         if (self%nc_id .ne. -1) then
             call check_err(nf90_put_var(self%nc_id, self%time_id, foo, start_time, edges_time))
-            
+
             do ip = 1, size(model%state_variables)
                 call check_err(nf90_put_var(self%nc_id, self%parameter_id(ip),&
                                Cc(first_lvl:last_lvl, ip), start, edges))
@@ -418,7 +424,7 @@ contains
             call check_err(nf90_put_var(self%nc_id, self%s_id, sal2(first_lvl:last_lvl, julianday), start, edges))
             call check_err(nf90_put_var(self%nc_id, self%kz2_id, Kz2(first_lvl:last_lvl, julianday), start, edges))
             call check_err(nf90_put_var(self%nc_id, self%iz_id, iz(first_lvl:last_lvl),  start, edges))
-            call check_err(nf90_sync(self%nc_id))        
+            call check_err(nf90_sync(self%nc_id))
         end if
 
     end subroutine save_netcdf
@@ -493,13 +499,13 @@ contains
             call check_err(nf90_put_var(self%nc_id, self%po4_id, po4(first_lvl:last_lvl), start, edges))
             call check_err(nf90_put_var(self%nc_id, self%brine_relative_volume_id,&
                                         brine_relative_volume(first_lvl:last_lvl), start, edges))
-            call check_err(nf90_sync(self%nc_id))        
+            call check_err(nf90_sync(self%nc_id))
         end if
 
     end subroutine save_netcdf_algae
 
     subroutine close_netcdf(self)
-        
+
         class(netcdf_o):: self
         if (self%nc_id .ne. -1) then
             call check_err(nf90_close(self%nc_id))
@@ -507,17 +513,17 @@ contains
             deallocate(self%parameter_id_diag)
         end if
         self%nc_id = -1
-        
+
     end subroutine close_netcdf
 
     subroutine close_netcdf_algae(self)
-        
+
         class(netcdf_algae_o):: self
         if (self%nc_id .ne. -1) then
             call check_err(nf90_close(self%nc_id))
         end if
         self%nc_id = -1
-        
+
     end subroutine close_netcdf_algae
 
     integer function set_attributes(ncid,id,                         &
@@ -536,80 +542,80 @@ contains
     ! !USES:
     !  IMPLICIT NONE
     !
-    ! !INPUT PARAMETERS:
-    integer, intent(in)                     :: ncid,id
-    character(len=*), optional              :: units,long_name
-    real, optional                          :: valid_min,valid_max
-    real, optional                          :: valid_range(2)
-    real, optional                          :: scale_factor,add_offset
-    double precision, optional              :: FillValue,missing_value
-    character(len=*), optional              :: C_format,FORTRAN_format
-    !
-    ! !REVISION HISTORY:
-    !  Original author(s): Karsten Bolding & Hans Burchard
-    !
-    ! !LOCAL VARIABLES:
-    integer                                 :: iret
-    real                                    :: vals(2)
-    !
-    !
-    !-----------------------------------------------------------------------
-    !
-    if(present(units)) then
-    iret = nf90_put_att(ncid,id,'units',trim(units))
-    end if
+        ! !INPUT PARAMETERS:
+        integer, intent(in)                     :: ncid,id
+        character(len=*), optional              :: units,long_name
+        real, optional                          :: valid_min,valid_max
+        real, optional                          :: valid_range(2)
+        real, optional                          :: scale_factor,add_offset
+        double precision, optional              :: FillValue,missing_value
+        character(len=*), optional              :: C_format,FORTRAN_format
+        !
+        ! !REVISION HISTORY:
+        !  Original author(s): Karsten Bolding & Hans Burchard
+        !
+        ! !LOCAL VARIABLES:
+        integer                                 :: iret
+        real                                    :: vals(2)
+        !
+        !
+        !-----------------------------------------------------------------------
+        !
+        if(present(units)) then
+        iret = nf90_put_att(ncid,id,'units',trim(units))
+        end if
 
-    if(present(long_name)) then
-    iret = nf90_put_att(ncid,id,'long_name',trim(long_name))
-    end if
+        if(present(long_name)) then
+        iret = nf90_put_att(ncid,id,'long_name',trim(long_name))
+        end if
 
-    if(present(C_format)) then
-    iret = nf90_put_att(ncid,id,'C_format',trim(C_format))
-    end if
+        if(present(C_format)) then
+        iret = nf90_put_att(ncid,id,'C_format',trim(C_format))
+        end if
 
-    if(present(FORTRAN_format)) then
-    iret = nf90_put_att(ncid,id,'FORTRAN_format',trim(FORTRAN_format))
-    end if
+        if(present(FORTRAN_format)) then
+        iret = nf90_put_att(ncid,id,'FORTRAN_format',trim(FORTRAN_format))
+        end if
 
-    if(present(valid_min)) then
-    vals(1) = valid_min
-    iret = nf90_put_att(ncid,id,'valid_min',vals(1:1))
-    end if
+        if(present(valid_min)) then
+        vals(1) = valid_min
+        iret = nf90_put_att(ncid,id,'valid_min',vals(1:1))
+        end if
 
-    if(present(valid_max)) then
-    vals(1) = valid_max
-    iret = nf90_put_att(ncid,id,'valid_max',vals(1:1))
-    end if
+        if(present(valid_max)) then
+        vals(1) = valid_max
+        iret = nf90_put_att(ncid,id,'valid_max',vals(1:1))
+        end if
 
-    if(present(valid_range)) then
-    vals(1) = valid_range(1)
-    vals(2) = valid_range(2)
-    iret = nf90_put_att(ncid,id,'valid_range',vals(1:2))
-    end if
+        if(present(valid_range)) then
+        vals(1) = valid_range(1)
+        vals(2) = valid_range(2)
+        iret = nf90_put_att(ncid,id,'valid_range',vals(1:2))
+        end if
 
-    if(present(scale_factor)) then
-    vals(1) = scale_factor
-    iret = nf90_put_att(ncid,id,'scale_factor',vals(1:1))
-    end if
+        if(present(scale_factor)) then
+        vals(1) = scale_factor
+        iret = nf90_put_att(ncid,id,'scale_factor',vals(1:1))
+        end if
 
-    if(present(add_offset)) then
-    vals(1) = add_offset
-    iret = nf90_put_att(ncid,id,'add_offset',vals(1:1))
-    end if
+        if(present(add_offset)) then
+        vals(1) = add_offset
+        iret = nf90_put_att(ncid,id,'add_offset',vals(1:1))
+        end if
 
-    if(present(FillValue)) then
-    vals(1) = FillValue
-    iret = nf90_put_att(ncid,id,'_FillValue',vals(1:1))
-    end if
+        if(present(FillValue)) then
+        vals(1) = FillValue
+        iret = nf90_put_att(ncid,id,'_FillValue',vals(1:1))
+        end if
 
-    if(present(missing_value)) then
-    vals(1) = missing_value
-    iret = nf90_put_att(ncid,id,'missing_value',vals(1:1))
-    end if
+        if(present(missing_value)) then
+        vals(1) = missing_value
+        iret = nf90_put_att(ncid,id,'missing_value',vals(1:1))
+        end if
 
-    set_attributes = 0
+        set_attributes = 0
 
-    return
+        return
     end function set_attributes
 
     subroutine check_err(status)
@@ -620,9 +626,9 @@ contains
             print *, trim(nf90_strerror(status))
             stop
         endif
-        
+
     end subroutine check_err
-    
+
 end module io_netcdf
 
 !-----------------------------------------------------------------------

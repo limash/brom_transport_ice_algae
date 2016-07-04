@@ -2,5 +2,6 @@
 
 mkdir -p build
 rm -r build/*
+CWD=`pwd`
 cp data/* build &&
-cd build && cmake $BROMDIR/src -DFABM_BASE=$FABMDIR -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=~/local/brom
+cd build && cmake $CWD/src -DFABM_BASE=$FABMDIR -DCMAKE_BUILD_TYPE=Debug

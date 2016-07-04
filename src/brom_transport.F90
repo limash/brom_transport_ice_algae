@@ -1,5 +1,5 @@
 module brom_transport
-!transport module    
+!transport module
 
     use fabm
     use fabm_config
@@ -7,7 +7,7 @@ module brom_transport
     use io_netcdf
     use io_ascii
     use ice_algae_lib
-    
+
     implicit none
     private
 
@@ -26,7 +26,7 @@ module brom_transport
     real(rk) :: wind_speed
     real(rk) :: pco2_atm
     !parameters for grid
-    real(rk) :: width_bbl, resolution_bbl 
+    real(rk) :: width_bbl, resolution_bbl
     real(rk) :: width_bioturbation, resolution_bioturbation
     real(rk) :: width_sediments, resolution_sediments
 
@@ -41,7 +41,7 @@ module brom_transport
         snow_thick, t_ice
     !arrays for bouns conditions
     real(rk), allocatable, dimension(:) :: bound_up, bound_low
-  
+
     real(rk), allocatable, dimension(:) :: density, pressure
     !irradiance in water column
     real(rk), allocatable, dimension(:) :: iz
@@ -65,9 +65,9 @@ contains
 
     subroutine init_brom_transport()
     !initialization
-        
+
         integer                 :: i
-        
+
         !reading brom.yaml: module io_ascii
         call init_brom_par()
 
@@ -82,7 +82,7 @@ contains
         dt                      = get_brom_par("dt")
         wind_speed              = get_brom_par("wind_speed")
         pco2_atm                = get_brom_par("pco2_atm")
-        
+
         !input_netcdf, kz2 - AKs
         !hice - "time-averaged average ice thickness in cell"
         !also generates grid according to input data
@@ -92,7 +92,7 @@ contains
             width_sediments, resolution_sediments, year, ice_area, heat_flux, &
             snow_thick, t_ice)
         kz2(1:35, :) = kz2(1:35, :) * 0.1 !question
-        
+
         !initialize FABM model from fabm.yaml
         call fabm_create_model_from_yaml_file(model)
         par_max = size(model%state_variables)
@@ -102,7 +102,7 @@ contains
         call model%set_surface_index(2)
         call model%set_bottom_index(boundary_bbl_sediments)
 
-        !main array and its icrement allocating    
+        !main array and its icrement allocating
         allocate(cc(lev_max, par_max))
         allocate(dcc(lev_max, par_max))
         allocate(fick(lev_max, par_max))
@@ -113,7 +113,7 @@ contains
         allocate(use_bound_low(par_max))
         allocate(iz(lev_max))
         allocate(density(lev_max))
-        allocate(pressure(lev_max))  
+        allocate(pressure(lev_max))
         allocate(par_name(par_max))
         use_bound_up = .false.
         use_bound_low = .false.
@@ -121,12 +121,12 @@ contains
         !auxiliary variables
         density = get_brom_par("density")
         !dbar, roughly equivalent to depth in m+ 1 bar atmospheric pressure
-        pressure = z + 10     
+        pressure = z + 10
         ! Send pointers to state variable data to FABM
         do i = 1, par_max
             call fabm_link_bulk_state_data(model, i, cc(:, i))
         end do
-        
+
         !provide initial array slices with temperature and salinity
         !these will be resent every time julianday is updated, below
         call fabm_link_bulk_data(model, standard_variables%temperature, &
@@ -144,7 +144,7 @@ contains
         call fabm_link_horizontal_data(model, &
             standard_variables%mole_fraction_of_carbon_dioxide_in_air, pco2_atm) !ppm
         call fabm_check_ready(model)
-        
+
         do i = 1, par_max
             par_name(i) = model%state_variables(i)%name
         end do
@@ -155,10 +155,10 @@ contains
             !reset cc from input.dat
             call porting_initial_state_variables_data(lev_max, par_name, cc)
         end if
-        
+
         !ice algae initialization
         ice_l => ice_layer(number_of_layers)
-        
+
         !initializing output
         netcdf_ice => netcdf_algae_o()
         netcdf_pelagic => netcdf_o()
@@ -168,13 +168,13 @@ contains
             boundary_water_bbl - 1, model)
         call netcdf_bottom%init_netcdf("output_bottom.nc", &
             boundary_water_bbl, lev_max, model)
-    
+
     end subroutine init_brom_transport
-    
+
     subroutine do_brom_transport()
-        
+
         use calculate, only: calculate_phys, calculate_sed
-        
+
         integer     :: i, id, ip, k, julianday, idt
         real(rk)    :: lat_light
         real(rk)    :: kc         !attenuation constant for the self shading effect
@@ -184,12 +184,12 @@ contains
         integer     :: freq_az                  !vert.turb. / bhc frequency
         integer     :: freq_sed                 !sinking / bhc frequency
         integer     :: last_day, model_year = 0
-        
+
         real(rk) :: flux_sf(size(model%state_variables))
         !indexes of state variables
         integer  :: i_O2, i_Mn4, i_Fe3, i_DON, i_PON, i_NH4, i_NO2, i_NO3, &
                  i_SO4, i_PO4, i_Si
-            
+
         !getting parameters from brom.yaml
         lat_light   = get_brom_par("lat_light")
         kc          = get_brom_par("kc")
@@ -198,18 +198,18 @@ contains
         freq_sed    = get_brom_par("freq_sed ")
         last_day    = get_brom_par("last_day")
 
-        i_O2        = find_index(par_name, 'niva_brom_bio_O2')              
-        i_NO3       = find_index(par_name, 'niva_brom_bio_NO3')             
-        i_NO2       = find_index(par_name, 'niva_brom_redox_NO2')            
-        i_NH4       = find_index(par_name, 'niva_brom_bio_NH4')         
-        i_DON       = find_index(par_name, 'niva_brom_bio_DON')         
-        i_PON       = find_index(par_name, 'niva_brom_bio_PON')            
-        i_PO4       = find_index(par_name, 'niva_brom_bio_PO4')      
-        i_Si        = find_index(par_name, 'niva_brom_redox_Si')      
-        i_Mn4       = find_index(par_name, 'niva_brom_redox_Mn4')           
-        i_Fe3       = find_index(par_name, 'niva_brom_redox_Fe3')          
-        i_SO4       = find_index(par_name, 'niva_brom_redox_SO4')          
-        
+        i_O2        = find_index(par_name, 'niva_brom_bio_O2')
+        i_NO3       = find_index(par_name, 'niva_brom_bio_NO3')
+        i_NO2       = find_index(par_name, 'niva_brom_redox_NO2')
+        i_NH4       = find_index(par_name, 'niva_brom_bio_NH4')
+        i_DON       = find_index(par_name, 'niva_brom_bio_DON')
+        i_PON       = find_index(par_name, 'niva_brom_bio_PON')
+        i_PO4       = find_index(par_name, 'niva_brom_bio_PO4')
+        i_Si        = find_index(par_name, 'niva_brom_redox_Si')
+        i_Mn4       = find_index(par_name, 'niva_brom_redox_Mn4')
+        i_Fe3       = find_index(par_name, 'niva_brom_redox_Fe3')
+        i_SO4       = find_index(par_name, 'niva_brom_redox_SO4')
+
         !boudary conditions
         if (i_SO4 /= -1 .and. get_brom_par("use_bound_up_SO4") /= 0) then
             use_bound_up(i_SO4) = .true.
@@ -230,27 +230,27 @@ contains
 
         !deallocate brom parameters
         call close_brom_par()
-        
+
         idt = int(1. / dt)                               !number of cycles per day
-        
+
         do  i = 0, last_day - 1                          !BIG Cycle ("i"-days)
             !it calculates julian day and year
             julianday = max(1, i - int(i / 365) * 365 + 1)
             if (julianday == 1) then
                 model_year = model_year + 1
             end if
-            
+
             !compute surface irradiance
             io = max(0., 80. * cos((lat_light - (23.5 * sin(2. * 3.14 * &
                 (julianday - 81.) /365.))) * 3.14 / 180.)) !W m-2
             io_temp = io
-            
+
             !resend data that depend on julianday to FABM
             call fabm_link_bulk_data(model, &
                 standard_variables%temperature, tem2(:, julianday))
             call fabm_link_bulk_data(model, &
                 standard_variables%practical_salinity, sal2(:, julianday))
-            
+
             !boudary conditions
             if (i_NO3 /= -1) then
                 use_bound_up(i_NO3) = .true.
@@ -267,7 +267,7 @@ contains
                 bound_up(i_Si)  = 0. + (1. + sin(2 * 3.14 * (julianday - 115.) &
                     / 365.)) * 8.0! max 16 microM at day 205 approx.
             end if
-            
+
             !send algae to ice_l object
             do k = number_of_layers, 1, -1
                 call ice_l(k)%rewrite_algae(k, 0)
@@ -312,23 +312,23 @@ contains
                     iz(k) = 0.
                 end if
             end do
-            
+
             !timesteps in the course of a day
             do id = 1, idt
-            
+
                 !Kinetic processes (time integration is needed)
                 dcc = 0.
                 call fabm_do(model, 1, lev_max, dcc)
-                
+
                 !integration
                 cc = max(0.00000000001, (cc + dcc * dt * 86400.))
-                
+
                 !ice algae
                 do k = number_of_layers, 2, -1
                     call ice_l(k)%do_ice(k, cc(1, i_NH4), cc(1, i_NO2), &
                         cc(1, i_NO3), cc(1, i_PO4), dt, hice(julianday))
                 end do
-                
+
                 !compute surface fluxes in fabm
                 flux_sf = 0.
                 call fabm_do_surface(model, flux_sf)
@@ -347,7 +347,7 @@ contains
                         cc(k, :) = cc(k, :) + (dt / freq_az) * dcc(k, :) * 86400.
                     end do
                 end do
-                
+
                 !sedimentation of particulate matter
                 !compute residual vertical velocity (sinking/floating) in FABM.
                 wbio = 0.
@@ -386,16 +386,16 @@ contains
             da_n = 0.
             da_p = 0.
         end do
-        
+
     end subroutine do_brom_transport
-    
+
     subroutine clear_brom_transport()
 
         !allocated here
         deallocate(cc)
         deallocate(dcc)
         deallocate(fick)
-        deallocate(wbio) 
+        deallocate(wbio)
         deallocate(bound_up)
         deallocate(bound_low)
         deallocate(use_bound_up)
@@ -425,7 +425,7 @@ contains
         netcdf_bottom=>null()
 
         write (*,'(a)') "finish"
-    
+
     end subroutine clear_brom_transport
 
 end module brom_transport
