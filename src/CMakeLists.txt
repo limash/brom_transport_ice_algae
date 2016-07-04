@@ -43,7 +43,7 @@ set(FABM_LIBRARIES fabm)
 set(FABM_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/fabm/modules)
 
 add_executable(brom WIN32
-               brom-transport.F90
+               brom_transport.F90
                calculate.F90
                ice_algae.F90
                io_ascii.F90
