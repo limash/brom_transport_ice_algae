@@ -80,13 +80,13 @@ contains
     subroutine calculate_sed(par_max, lev_max, wbio, cc, dz, &
     boundary_bbl_sediments, dcc)
 
-        real(rk), dimension(lev_max, par_max), intent(inout):: dcc
         real(rk), dimension(:, :), intent(inout) :: cc
         real(rk), dimension(:, :), intent(in)    :: wbio
         real(rk), intent(in)                     :: dz(:)
         integer, intent(in)                      :: par_max
         integer, intent(in)                      :: lev_max
         integer, intent(in)                      :: boundary_bbl_sediments
+        real(rk), dimension(lev_max, par_max), intent(inout):: dcc
 
         real(rk)                                 :: w_u(par_max)
         real(rk)                                 :: w_d(par_max)

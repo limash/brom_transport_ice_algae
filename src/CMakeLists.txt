@@ -60,7 +60,6 @@ target_link_libraries(brom "${NetCDF_LIBRARIES}")
 
 if(${CMAKE_Fortran_COMPILER_ID} STREQUAL "Intel")
   if(WIN32)
-    set_property(TARGET brom APPEND PROPERTY COMPILE_FLAGS "/nofpp")
     target_compile_options(brom PRIVATE /nothreads /libs:static /libs:qwin)
   endif()
 endif()
